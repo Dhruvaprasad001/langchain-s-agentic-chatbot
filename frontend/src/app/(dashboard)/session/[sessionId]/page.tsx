@@ -13,7 +13,7 @@ import { createSession, getSession } from "@/src/services/sessionService";
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
-  const { messages, loading, sending, error, sendMessage } = useChat(sessionId);
+  const { messages, loading, sending, pendingReply, error, sendMessage } = useChat(sessionId);
   const { toggle } = useSidebar();
   const router = useRouter();
 
@@ -46,14 +46,22 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
           <Spinner size="md" />
         </div>
       ) : (
-        <MessageList messages={messages} sending={sending} />
+        <>
+          <MessageList messages={messages} sending={sending} />
+          {pendingReply && !sending && (
+            <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-xs text-zinc-400">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-indigo-400" />
+              Waiting for response…
+            </div>
+          )}
+        </>
       )}
 
       {error && (
         <p className="px-4 pb-1 text-center text-xs text-red-500">{error}</p>
       )}
 
-      <ChatInput onSend={sendMessage} disabled={sending || loading} />
+      <ChatInput onSend={sendMessage} disabled={sending || loading || pendingReply} />
     </div>
   );
 }
