@@ -1,8 +1,9 @@
+import asyncio
 import json
 import logging
 import os
 from datetime import datetime
-from typing import Annotated, Awaitable, Callable, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Annotated, Awaitable, Callable, ClassVar, TypedDict
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -14,6 +15,9 @@ from app.core.config import settings
 from app.exceptions import ChatStreamError
 from app.repositories.message_repository import MessageRepository
 from app.repositories.session_repository import SessionRepository
+
+if TYPE_CHECKING:
+    from app.services.memory_service import MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,7 @@ class AgentState(TypedDict):
     plan: list[str]           # steps the planner creates
     step_results: list[str]   # output of each executed step
     original_message: str     # preserved for executor + synthesizer context
+    memory_context: str       # injected before graph run; empty for new users
 
 
 # ── ChatService ───────────────────────────────────────────────────────────────
@@ -137,6 +142,8 @@ class ChatService:
     def _llm_node(cls, state: AgentState) -> AgentState:
         """Generate a streaming response to the full conversation."""
         system = f"{cls._system_prompt}\n\nCurrent date: {datetime.now().strftime('%B %d, %Y')}"
+        if state.get("memory_context"):
+            system += state["memory_context"]
         prompt = ChatPromptTemplate.from_messages([
             ("system", system),
             MessagesPlaceholder(variable_name="messages"),
@@ -212,6 +219,8 @@ class ChatService:
             f"Original request: {state['original_message']}\n"
             f"Step results:\n{step_summary}"
         )
+        if state.get("memory_context"):
+            system += state["memory_context"]
         prompt = ChatPromptTemplate.from_messages([
             ("system", system),
             MessagesPlaceholder(variable_name="messages"),
@@ -243,17 +252,19 @@ class ChatService:
         on_done: Callable[[str], Awaitable[None]],
         on_plan_step: Callable[[str], Awaitable[None]] | None = None,
         on_thinking: Callable[[str, str], Awaitable[None]] | None = None,
+        memory_service: "MemoryService | None" = None,
     ) -> None:
         """
         Full chat orchestration: verify session, load history, persist user message,
         run LangGraph, stream tokens via on_chunk, persist assistant reply via on_done.
 
-        on_chunk       — plain text token deltas
-        on_plan_step   — each plan step string once the planner finishes
-        on_thinking    — (step_label, status) where status is "start" or "done";
-                         called by the executor before/after each step so the UI
-                         can show live thinking progress
-        on_done        — called with the full accumulated response when streaming ends
+        on_chunk        — plain text token deltas
+        on_plan_step    — each plan step string once the planner finishes
+        on_thinking     — (step_label, status) "start" or "done" from the executor
+        on_done         — called with the full accumulated response when streaming ends
+        memory_service  — injected by the API layer; if provided, memories are
+                          retrieved before the graph runs and new facts are extracted
+                          after streaming completes (fire-and-forget, non-blocking)
 
         Raises:
             SessionNotFoundError: if session does not exist or belong to uid.
@@ -273,6 +284,19 @@ class ChatService:
         self._message_repo.add(uid=uid, session_id=session_id, role="user", content=user_message)
         logger.info("User message persisted session_id=%s uid=%s", session_id, uid)
 
+        # retrieve relevant memories and build context string
+        memory_context = ""
+        if memory_service is not None:
+            memories = await memory_service.retrieve_relevant(uid, user_message)
+            if memories:
+                memory_context = "\n\nWhat you know about this user:\n" + "\n".join(
+                    f"- {m}" for m in memories
+                )
+                logger.info(
+                    "[MEMORY] injected %d memory/memories session_id=%s uid=%s",
+                    len(memories), session_id, uid,
+                )
+
         # build LangGraph initial state
         messages = self._to_lc_messages(history)
         messages.append(HumanMessage(content=user_message))
@@ -284,6 +308,7 @@ class ChatService:
             "plan": [],
             "step_results": [],
             "original_message": "",
+            "memory_context": memory_context,
         }
 
         logger.info("Starting LangGraph stream session_id=%s uid=%s", session_id, uid)
@@ -337,6 +362,12 @@ class ChatService:
             logger.info("Assistant message persisted session_id=%s uid=%s", session_id, uid)
 
         await on_done(accumulated)
+
+        # fire-and-forget: extract and store new facts without blocking the response
+        if memory_service is not None and accumulated:
+            asyncio.create_task(
+                memory_service.extract_and_store(uid, user_message, accumulated)
+            )
 
 
 # Build the graph once at module load time and attach it to the class.

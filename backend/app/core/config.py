@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = "https://api.openai.com/v1"  # swap for OpenRouter later
 
+    # Memory (Chroma + OpenAI embeddings)
+    chroma_persist_directory: str = "./chroma_db"
+    memory_collection_prefix: str = "memory"
+    max_memories_injected: int = 5
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

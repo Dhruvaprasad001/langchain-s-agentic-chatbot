@@ -6,5 +6,8 @@ langchain
 langgraph
 langchain-openai
 langchain-community
+langchain-chroma
 pydantic
 pydantic-settings
+chromadb
+openai
