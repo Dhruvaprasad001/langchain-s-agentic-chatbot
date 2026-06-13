@@ -34,6 +34,9 @@ async def chat(
     async def on_plan_step(step: str) -> None:
         await queue.put(json.dumps({"type": "plan_step", "content": step}))
 
+    async def on_thinking(step_label: str, status: str) -> None:
+        await queue.put(json.dumps({"type": "thinking", "content": step_label, "status": status}))
+
     async def on_done(_full_response: str) -> None:
         await queue.put(None)
 
@@ -46,6 +49,7 @@ async def chat(
                 on_chunk=on_chunk,
                 on_done=on_done,
                 on_plan_step=on_plan_step,
+                on_thinking=on_thinking,
             )
         )
 

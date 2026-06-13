@@ -242,13 +242,18 @@ class ChatService:
         on_chunk: Callable[[str], Awaitable[None]],
         on_done: Callable[[str], Awaitable[None]],
         on_plan_step: Callable[[str], Awaitable[None]] | None = None,
+        on_thinking: Callable[[str, str], Awaitable[None]] | None = None,
     ) -> None:
         """
         Full chat orchestration: verify session, load history, persist user message,
         run LangGraph, stream tokens via on_chunk, persist assistant reply via on_done.
 
-        on_chunk receives plain text deltas.
-        on_plan_step (optional) receives each plan step string as the planner completes.
+        on_chunk       — plain text token deltas
+        on_plan_step   — each plan step string once the planner finishes
+        on_thinking    — (step_label, status) where status is "start" or "done";
+                         called by the executor before/after each step so the UI
+                         can show live thinking progress
+        on_done        — called with the full accumulated response when streaming ends
 
         Raises:
             SessionNotFoundError: if session does not exist or belong to uid.
@@ -295,6 +300,17 @@ class ChatService:
                     if on_plan_step is not None:
                         for step in plan:
                             await on_plan_step(step)
+
+                # emit thinking events as the executor works through each step
+                if on_thinking is not None and node == "executor":
+                    if kind == "on_chain_start":
+                        plan = event["data"].get("input", {}).get("plan", [])
+                        for step in plan:
+                            await on_thinking(step, "start")
+                    elif kind == "on_chain_end":
+                        plan = event["data"].get("output", {}).get("plan", [])
+                        for step in plan:
+                            await on_thinking(step, "done")
 
                 # stream plain text tokens from conversational and synthesizer nodes
                 if kind == "on_chat_model_stream" and node in ("llm_node", "synthesizer"):
