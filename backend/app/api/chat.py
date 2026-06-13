@@ -7,11 +7,9 @@ from fastapi.responses import StreamingResponse
 
 from app.api.schemas import ChatRequest
 from app.auth import get_current_user
-from app.dependencies import get_chat_dependencies
+from app.dependencies import get_chat_service
 from app.exceptions import ChatStreamError, SessionNotFoundError
-from app.repositories.message_repository import MessageRepository
-from app.repositories.session_repository import SessionRepository
-from app.services import chat_service
+from app.services.chat_service import ChatService
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +21,10 @@ async def chat(
     session_id: str,
     body: ChatRequest,
     current_user: dict = Depends(get_current_user),
-    repos: tuple[SessionRepository, MessageRepository] = Depends(get_chat_dependencies),
+    svc: ChatService = Depends(get_chat_service),
 ):
     uid = current_user["uid"]
-    session_repo, message_repo = repos
-    logger.info("POST /chat/%s uid=%s model=%s", session_id, uid, body.model)
+    logger.info("POST /chat/%s uid=%s", session_id, uid)
 
     queue: asyncio.Queue[str | None] = asyncio.Queue()
 
@@ -39,15 +36,12 @@ async def chat(
 
     async def sse_generator():
         graph_task = asyncio.create_task(
-            chat_service.stream_chat(
+            svc.stream_chat(
                 uid=uid,
                 session_id=session_id,
                 user_message=body.message,
-                model=body.model,
                 on_chunk=on_chunk,
                 on_done=on_done,
-                session_repo=session_repo,
-                message_repo=message_repo,
             )
         )
 

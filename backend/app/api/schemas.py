@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -14,7 +14,6 @@ class SessionCreateRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    model: Optional[str] = "gpt-4o-mini"
 
 
 # ── Response schemas ──────────────────────────────────────────────────────────
