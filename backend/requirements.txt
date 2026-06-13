@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+firebase-admin
+httpx
+langchain
+langgraph
+langchain-openai
+langchain-community
+pydantic
+pydantic-settings
