@@ -7,6 +7,8 @@ export function streamMessage(
   onChunk: (delta: string) => void,
   onDone: () => void,
   onError: (err: Error) => void,
+  onPlanStep?: (step: string) => void,
+  onThinking?: (stepLabel: string, status: "start" | "done") => void,
 ): void {
   fetch(`${BACKEND_URL}/api/v1/chat/${sessionId}`, {
     method: "POST",
@@ -33,7 +35,6 @@ export function streamMessage(
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
-          // Keep the last (potentially incomplete) line in the buffer
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
@@ -45,8 +46,23 @@ export function streamMessage(
               return;
             }
             try {
-              const parsed = JSON.parse(raw) as { content?: string };
-              if (parsed.content) onChunk(parsed.content);
+              const parsed = JSON.parse(raw) as {
+                type?: string;
+                content?: string;
+                status?: string;
+              };
+
+              if (parsed.type === "plan_step") {
+                onPlanStep?.(parsed.content ?? "");
+              } else if (parsed.type === "thinking") {
+                onThinking?.(
+                  parsed.content ?? "",
+                  (parsed.status as "start" | "done") ?? "start",
+                );
+              } else if (parsed.content) {
+                // plain token (no type field) — conversational + synthesizer
+                onChunk(parsed.content);
+              }
             } catch {
               // skip malformed lines
             }
