@@ -11,6 +11,16 @@ from langgraph.graph.message import add_messages
 
 logger = logging.getLogger(__name__)
 
+
+def _load_agent_files() -> str:
+    base = os.path.join(os.path.dirname(__file__), "../agent")
+    soul = open(os.path.join(base, "soul.md")).read()
+    agent = open(os.path.join(base, "agent.md")).read()
+    return f"{soul}\n\n{agent}"
+
+
+AGENT_SYSTEM_PROMPT = _load_agent_files()
+
 # ── LLM ──────────────────────────────────────────────────────────────────────
 
 def _make_llm(streaming: bool = False) -> ChatOpenAI:
@@ -66,14 +76,10 @@ def llm_node(state: AgentState) -> AgentState:
     """Generate a streaming response to the full conversation."""
     llm = _make_llm(streaming=True)
 
-    system_prompt = f"""You are a helpful AI assistant with a sharp, direct personality. 
-You think clearly, communicate concisely, and tell the user what they need to hear.
-
-Current date: {datetime.now().strftime("%B %d, %Y")}
-"""
+    system = f"{AGENT_SYSTEM_PROMPT}\n\nCurrent date: {datetime.now().strftime('%B %d, %Y')}"
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
+        ("system", system),
         MessagesPlaceholder(variable_name="messages"),
     ])
 
