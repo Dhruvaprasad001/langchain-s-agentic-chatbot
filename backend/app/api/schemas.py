@@ -14,7 +14,7 @@ class SessionCreateRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    model: Optional[str] = "anthropic/claude-sonnet-4-6"
+    model: Optional[str] = "gpt-4o-mini"
 
 
 # ── Response schemas ──────────────────────────────────────────────────────────
