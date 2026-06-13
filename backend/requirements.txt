@@ -11,3 +11,5 @@ pydantic
 pydantic-settings
 chromadb
 openai
+duckduckgo-search
+ddgs

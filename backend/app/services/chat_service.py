@@ -90,17 +90,26 @@ class ChatService:
         graph.add_node("planner", cls._planner_node)
         graph.add_node("executor", cls._executor_node)
         graph.add_node("synthesizer", cls._synthesizer_node)
+        graph.add_node("web_search_agent", cls._web_search_agent_node)
+        graph.add_node("startup_critique_agent", cls._startup_critique_agent_node)
 
         graph.add_edge(START, "router")
         graph.add_conditional_edges(
             "router",
             lambda state: state["route"],
-            {"conversational": "llm_node", "analytical": "planner"},
+            {
+                "conversational": "llm_node",
+                "analytical": "planner",
+                "web_search": "web_search_agent",
+                "startup_critique": "startup_critique_agent",
+            },
         )
         graph.add_edge("llm_node", END)
         graph.add_edge("planner", "executor")
         graph.add_edge("executor", "synthesizer")
         graph.add_edge("synthesizer", END)
+        graph.add_edge("web_search_agent", END)
+        graph.add_edge("startup_critique_agent", END)
 
         return graph.compile()
 
@@ -108,25 +117,43 @@ class ChatService:
 
     @classmethod
     def _router_node(cls, state: AgentState) -> AgentState:
-        """Classify the last user message as 'conversational' or 'analytical'."""
+        """Classify the last user message into one of four routes."""
         last_content = ""
         for msg in reversed(state["messages"]):
             if isinstance(msg, HumanMessage):
                 last_content = msg.content
                 break
 
+        # Fast-path: explicit @web-search prefix — no LLM call needed
+        if last_content.strip().startswith("@web-search"):
+            logger.info(
+                "Router fast-path: web_search session_id=%s uid=%s",
+                state["session_id"], state["user_id"],
+            )
+            return {**state, "route": "web_search"}
+
         try:
             result = cls._router_llm.invoke([
                 {"role": "system", "content": (
-                    "Classify this message as exactly one word: "
-                    "'conversational' if it is casual chat, a question, or a simple request. "
-                    "'analytical' if it requires research, comparison, planning, or multi-step reasoning. "
-                    "Reply with only the word."
+                    "Classify the user message into exactly one of these four categories. "
+                    "Reply with only the category word, nothing else.\n\n"
+                    "Categories:\n"
+                    "- conversational: casual chat, simple questions, general knowledge\n"
+                    "- analytical: comparison, research, planning, multi-step reasoning\n"
+                    "- web_search: message starts with @web-search\n"
+                    "- startup_critique: user wants feedback or critique on a business idea, "
+                    "startup, or product concept\n\n"
+                    "Rules:\n"
+                    "- If message starts with @web-search → always return web_search\n"
+                    "- If user mentions pitching an idea, getting feedback on a startup, "
+                    "critiquing a business model → startup_critique\n"
+                    "- Otherwise use your judgment between conversational and analytical"
                 )},
                 {"role": "user", "content": last_content},
             ])
             route = result.content.strip().lower()
-            if route not in ("conversational", "analytical"):
+            valid_routes = ("conversational", "analytical", "web_search", "startup_critique")
+            if route not in valid_routes:
                 route = "conversational"
         except Exception as exc:
             logger.warning("Router classification failed (%s) — defaulting to conversational", exc)
@@ -221,6 +248,79 @@ class ChatService:
         )
         if state.get("memory_context"):
             system += state["memory_context"]
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system),
+            MessagesPlaceholder(variable_name="messages"),
+        ])
+        chain = prompt | cls._streaming_llm
+        response = chain.invoke({"messages": state["messages"]})
+        return {**state, "messages": [response]}
+
+    # ── Sub-agents ────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _web_search_agent_node(cls, state: AgentState) -> AgentState:
+        """Strip @web-search prefix, run DuckDuckGo, synthesize with personality."""
+        from langchain_community.tools import DuckDuckGoSearchRun  # lazy import
+
+        raw = state["messages"][-1].content
+        query = raw.replace("@web-search", "").strip()
+
+        logger.info("[WEB_SEARCH] query='%s' uid=%s session_id=%s", query, state["user_id"], state["session_id"])
+
+        try:
+            search = DuckDuckGoSearchRun()
+            results = search.run(query)
+        except Exception as exc:
+            logger.warning("[WEB_SEARCH] DuckDuckGo failed (%s) — using empty results", exc)
+            results = "No search results available."
+
+        system = (
+            f"{cls._system_prompt}\n\n"
+            "You have just performed a web search. Synthesize the results into a clear, "
+            "direct answer. Cite key points. Be concise — no padding.\n\n"
+            f"Search query: {query}\n"
+            f"Search results:\n{results}\n\n"
+            f"Current date: {datetime.now().strftime('%B %d, %Y')}"
+        )
+        if state.get("memory_context"):
+            system += state["memory_context"]
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system),
+            MessagesPlaceholder(variable_name="messages"),
+        ])
+        chain = prompt | cls._streaming_llm
+        response = chain.invoke({"messages": state["messages"]})
+        return {**state, "messages": [response]}
+
+    @classmethod
+    def _startup_critique_agent_node(cls, state: AgentState) -> AgentState:
+        """Give a structured, honest startup critique using the agent's personality."""
+        logger.info("[STARTUP_CRITIQUE] uid=%s session_id=%s", state["user_id"], state["session_id"])
+
+        system = (
+            f"{cls._system_prompt}\n\n"
+            "You are now in startup critique mode. You are a sharp, experienced investor and "
+            "product thinker. Critique the idea honestly — no sugarcoating, no empty validation.\n\n"
+            "Structure your response EXACTLY like this:\n\n"
+            "## The Idea\n"
+            "One line summary of what they're building.\n\n"
+            "## What's Working\n"
+            "2-3 genuine strengths. Be specific, not generic.\n\n"
+            "## Red Flags\n"
+            "2-3 honest concerns. Market size, competition, execution risk, monetization.\n\n"
+            "## Biggest Question\n"
+            "The single most important thing they need to figure out.\n\n"
+            "## Verdict\n"
+            "One of: Early but promising / Needs rethinking / Strong foundation / Pivot needed\n"
+            "Then 2-3 lines on what to do next.\n\n"
+            "Be direct. Use your Bangalore personality. Don't pad. If the idea is weak, say so.\n\n"
+            f"Current date: {datetime.now().strftime('%B %d, %Y')}"
+        )
+        if state.get("memory_context"):
+            system += state["memory_context"]
+
         prompt = ChatPromptTemplate.from_messages([
             ("system", system),
             MessagesPlaceholder(variable_name="messages"),
@@ -337,8 +437,10 @@ class ChatService:
                         for step in plan:
                             await on_thinking(step, "done")
 
-                # stream plain text tokens from conversational and synthesizer nodes
-                if kind == "on_chat_model_stream" and node in ("llm_node", "synthesizer"):
+                # stream plain text tokens from conversational, synthesizer, and sub-agent nodes
+                if kind == "on_chat_model_stream" and node in (
+                    "llm_node", "synthesizer", "web_search_agent", "startup_critique_agent"
+                ):
                     delta = event["data"]["chunk"].content
                     if delta:
                         accumulated += delta

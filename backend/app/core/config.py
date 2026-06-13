@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     memory_collection_prefix: str = "memory"
     max_memories_injected: int = 5
 
+    # Web search
+    max_search_results: int = 5
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

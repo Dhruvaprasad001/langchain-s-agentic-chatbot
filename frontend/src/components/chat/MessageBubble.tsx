@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Search } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/src/types";
@@ -47,6 +47,11 @@ function Caret() {
 
 export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const isWebSearch = isUser && message.content.trim().startsWith("@web-search");
+  // strip the prefix for display in the user bubble
+  const displayContent = isWebSearch
+    ? message.content.replace(/^@web-search\s*/i, "").trim()
+    : message.content;
   const isMarkdown = !isUser && hasMarkdown(message.content);
   const hasThinking =
     !isUser &&
@@ -119,7 +124,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 : "rounded-bl-sm bg-zinc-100 text-zinc-800"
             }`}
           >
-            <span className="whitespace-pre-wrap">{message.content}</span>
+            {/* Web search pill */}
+            {isWebSearch && (
+              <span className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-indigo-200">
+                <Search className="h-3 w-3" strokeWidth={2.5} />
+                Web search
+              </span>
+            )}
+            <span className="whitespace-pre-wrap">{displayContent}</span>
             {isStreaming && <Caret />}
           </div>
         )
