@@ -1,15 +1,16 @@
 import asyncio
 import json
-from typing import AsyncGenerator
+import logging
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.api.schemas import ChatRequest
 from app.auth import get_current_user
-from app.repositories.message_repository import MessageRepository
-from app.repositories.session_repository import SessionRepository
-from app.services.chat_service import stream_chat
+from app.exceptions import ChatStreamError, SessionNotFoundError
+from app.services import chat_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -21,51 +22,72 @@ async def chat(
     current_user: dict = Depends(get_current_user),
 ):
     uid = current_user["uid"]
-    session_repo = SessionRepository()
-    message_repo = MessageRepository()
+    logger.info("POST /chat/%s uid=%s model=%s", session_id, uid, body.model)
 
-    # verify ownership and load history before opening the stream
-    session_repo.get(uid=uid, session_id=session_id)
-    history_objs = message_repo.list_asc(uid=uid, session_id=session_id)
-    history = [{"role": m.role, "content": m.content} for m in history_objs]
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
 
-    # persist the user turn immediately
-    message_repo.add(uid=uid, session_id=session_id, role="user", content=body.message)
+    async def on_chunk(delta: str) -> None:
+        await queue.put(json.dumps({"content": delta}))
 
-    async def event_stream() -> AsyncGenerator[str, None]:
-        queue: asyncio.Queue[str | None] = asyncio.Queue()
+    async def on_done(_full_response: str) -> None:
+        await queue.put(None)
 
-        async def on_chunk(delta: str) -> None:
-            await queue.put(delta)
-
-        async def on_done(full_response: str) -> None:
-            if full_response:
-                message_repo.add(
-                    uid=uid,
-                    session_id=session_id,
-                    role="assistant",
-                    content=full_response,
-                )
-            await queue.put(None)  # sentinel signals stream end
-
+    async def sse_generator():
         graph_task = asyncio.create_task(
-            stream_chat(
-                user_id=uid,
+            chat_service.stream_chat(
+                uid=uid,
                 session_id=session_id,
                 user_message=body.message,
-                history=history,
+                model=body.model,
                 on_chunk=on_chunk,
                 on_done=on_done,
             )
         )
 
-        while True:
-            item = await queue.get()
-            if item is None:
-                break
-            yield f"data: {json.dumps({'content': item})}\n\n"
+        logger.info("SSE stream started session_id=%s uid=%s", session_id, uid)
 
-        await graph_task  # propagate any exceptions from the graph
+        try:
+            while True:
+                item = await queue.get()
+                if item is None:
+                    # drain any exception from the task before finishing
+                    await graph_task
+                    break
+                yield f"data: {item}\n\n"
+        except SessionNotFoundError as exc:
+            logger.warning("Chat session not found session_id=%s uid=%s: %s", session_id, uid, exc)
+            yield f"data: {json.dumps({'error': 'Session not found'})}\n\n"
+            graph_task.cancel()
+        except ChatStreamError as exc:
+            logger.error("Chat stream error session_id=%s uid=%s: %s", session_id, uid, exc)
+            yield f"data: {json.dumps({'error': 'Stream failed, please retry'})}\n\n"
+            graph_task.cancel()
+        except Exception as exc:
+            logger.error(
+                "Unexpected SSE error session_id=%s uid=%s: %s", session_id, uid, exc, exc_info=True,
+            )
+            yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
+            graph_task.cancel()
+
+        # re-raise any exceptions that occurred in graph_task so they surface as
+        # SSE error events if the queue consumer hasn't already handled them
+        if not graph_task.done():
+            graph_task.cancel()
+        elif not graph_task.cancelled():
+            exc = graph_task.exception()
+            if exc is not None:
+                if isinstance(exc, SessionNotFoundError):
+                    yield f"data: {json.dumps({'error': 'Session not found'})}\n\n"
+                elif isinstance(exc, ChatStreamError):
+                    yield f"data: {json.dumps({'error': 'Stream failed, please retry'})}\n\n"
+                else:
+                    logger.error(
+                        "graph_task raised unexpected exc session_id=%s uid=%s: %s",
+                        session_id, uid, exc, exc_info=True,
+                    )
+                    yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
+
         yield "data: [DONE]\n\n"
+        logger.info("SSE stream completed session_id=%s uid=%s", session_id, uid)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")
