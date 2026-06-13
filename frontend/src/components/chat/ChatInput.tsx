@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ArrowUp } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -30,45 +31,42 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setValue(e.target.value);
-    // Auto-grow textarea
     const el = e.target;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }
 
   return (
-    <div className="border-t border-neutral-200 bg-[var(--background)] px-4 py-3 dark:border-neutral-800">
-      <div
-        className={`flex items-end gap-2 rounded-xl border px-3 py-2 transition-colors ${
-          disabled
-            ? "border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900"
-            : "border-neutral-300 bg-white focus-within:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:focus-within:border-neutral-500"
-        }`}
-      >
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={value}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          placeholder={disabled ? "Waiting for response…" : "Message (Enter to send, Shift+Enter for newline)"}
-          className="flex-1 resize-none bg-transparent text-sm text-neutral-900 placeholder-neutral-400 outline-none disabled:cursor-not-allowed dark:text-neutral-100"
-        />
-        <button
-          onClick={submit}
-          disabled={disabled || !value.trim()}
-          aria-label="Send"
-          className="mb-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-white transition hover:bg-neutral-700 disabled:opacity-30 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+    <div className="bg-white pb-4 pt-2">
+      {/* same 50%-wide centred column as MessageList */}
+      <div className="mx-auto w-full max-w-2xl px-4">
+        <div
+          className={`flex items-center gap-2 rounded-2xl border px-4 py-3 shadow-sm transition-all ${
+            disabled
+              ? "border-zinc-200 bg-zinc-50"
+              : "border-zinc-200 bg-white focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100"
+          }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-            <path d="M3.105 2.288a.75.75 0 00-.826.95l1.903 6.115a.75.75 0 00.713.527h5.355a.75.75 0 010 1.5H4.895a.75.75 0 00-.713.527L2.28 17.962a.75.75 0 00.826.95 28.9 28.9 0 0015.898-8.293.75.75 0 000-1.253A28.9 28.9 0 003.105 2.288z" />
-          </svg>
-        </button>
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            placeholder={disabled ? "Thinking…" : "Message Xenon AI"}
+            className="flex-1 resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none disabled:cursor-not-allowed dark:text-zinc-100 dark:placeholder-zinc-600"
+          />
+          <button
+            onClick={submit}
+            disabled={disabled || !value.trim()}
+            aria-label="Send"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-30 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+          >
+            <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
-      <p className="mt-1.5 text-center text-xs text-neutral-400">
-        Shift+Enter for newline · Enter to send
-      </p>
     </div>
   );
 }

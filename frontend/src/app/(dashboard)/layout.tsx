@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarContext.Provider value={{ open, toggle }}>
-      <div className="flex h-screen overflow-hidden bg-white dark:bg-neutral-950">
+      <div className="flex h-screen overflow-hidden bg-white">
         <SessionSidebar
           sessions={sessions}
           loading={loading}

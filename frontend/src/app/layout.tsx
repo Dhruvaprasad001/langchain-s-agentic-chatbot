@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chatbot",
-  description: "Multi-tenant AI chatbot",
+  title: "Xenon AI",
+  description: "Your AI assistant",
 };
 
 export default function RootLayout({
@@ -25,6 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

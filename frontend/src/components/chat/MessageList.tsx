@@ -19,15 +19,18 @@ export function MessageList({ messages, sending = false }: MessageListProps) {
   const lastIdx = messages.length - 1;
 
   return (
-    <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-6">
-      {messages.map((m, i) => (
-        <MessageBubble
-          key={m.messageId}
-          message={m}
-          isStreaming={sending && i === lastIdx && m.role === "assistant"}
-        />
-      ))}
-      <div ref={bottomRef} />
+    <div className="flex flex-1 flex-col overflow-y-auto bg-white">
+      {/* centred, 50%-wide column */}
+      <div className="mx-auto w-full max-w-2xl flex-1 flex flex-col gap-5 px-4 py-8">
+        {messages.map((m, i) => (
+          <MessageBubble
+            key={m.messageId}
+            message={m}
+            isStreaming={sending && i === lastIdx && m.role === "assistant"}
+          />
+        ))}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }
