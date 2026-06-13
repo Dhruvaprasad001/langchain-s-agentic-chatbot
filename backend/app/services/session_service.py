@@ -8,9 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class SessionService:
-    def __init__(self) -> None:
-        self._sessions = SessionRepository()
-        self._messages = MessageRepository()
+    def __init__(
+        self,
+        session_repo: SessionRepository,
+        message_repo: MessageRepository,
+    ) -> None:
+        self._sessions = session_repo
+        self._messages = message_repo
 
     def create_session(self, uid: str, title: str) -> Session:
         logger.info("Creating session uid=%s title=%r", uid, title)

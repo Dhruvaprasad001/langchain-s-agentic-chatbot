@@ -9,16 +9,13 @@ from app.api.schemas import (
     SessionResponse,
 )
 from app.auth import get_current_user
+from app.dependencies import get_session_service
 from app.exceptions import RepositoryError, SessionNotFoundError
 from app.services.session_service import SessionService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-
-
-def get_session_service() -> SessionService:
-    return SessionService()
 
 
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)

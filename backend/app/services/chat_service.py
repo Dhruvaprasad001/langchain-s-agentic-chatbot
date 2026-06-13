@@ -146,18 +146,25 @@ async def stream_chat(
     model: str,
     on_chunk: Callable[[str], Awaitable[None]],
     on_done: Callable[[str], Awaitable[None]],
+    session_repo: SessionRepository | None = None,
+    message_repo: MessageRepository | None = None,
 ) -> None:
     """
     Full chat orchestration: verify session, load history, persist user message,
     run LangGraph, stream tokens via on_chunk, persist assistant reply via on_done.
+
+    session_repo and message_repo are injected by the caller (API layer via Depends).
+    If omitted (e.g. in tests) fresh instances are created as a fallback.
 
     Raises:
         SessionNotFoundError: if session does not exist or belong to uid.
         RepositoryError: if Firestore is unavailable.
         ChatStreamError: if the LLM graph fails during streaming.
     """
-    session_repo = SessionRepository()
-    message_repo = MessageRepository()
+    if session_repo is None:
+        session_repo = SessionRepository()
+    if message_repo is None:
+        message_repo = MessageRepository()
 
     # verify session ownership before any LLM work
     session_repo.get(uid=uid, session_id=session_id)
