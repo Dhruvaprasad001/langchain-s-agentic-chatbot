@@ -31,6 +31,9 @@ async def chat(
     async def on_chunk(delta: str) -> None:
         await queue.put(json.dumps({"content": delta}))
 
+    async def on_plan_step(step: str) -> None:
+        await queue.put(json.dumps({"type": "plan_step", "content": step}))
+
     async def on_done(_full_response: str) -> None:
         await queue.put(None)
 
@@ -42,6 +45,7 @@ async def chat(
                 user_message=body.message,
                 on_chunk=on_chunk,
                 on_done=on_done,
+                on_plan_step=on_plan_step,
             )
         )
 
