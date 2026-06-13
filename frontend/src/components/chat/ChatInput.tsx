@@ -54,14 +54,14 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder={disabled ? "Thinking…" : "Message Xenon AI"}
-            className="flex-1 resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none disabled:cursor-not-allowed dark:text-zinc-100 dark:placeholder-zinc-600"
+            placeholder={disabled ? "Thinking…" : "Message Xenon"}
+            className="flex-1 resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none disabled:cursor-not-allowed"
           />
           <button
             onClick={submit}
             disabled={disabled || !value.trim()}
             aria-label="Send"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-30 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-30"
           >
             <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
           </button>

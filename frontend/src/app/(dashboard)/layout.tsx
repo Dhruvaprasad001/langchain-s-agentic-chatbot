@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SessionSidebar } from "@/src/components/session/SessionSidebar";
 import { useSessions } from "@/src/hooks/useSessions";
+import { UnauthenticatedError } from "@/src/services/authService";
 
 // ── Sidebar context — lets child pages toggle and query sidebar state ─────────
 
@@ -31,15 +32,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggle = useCallback(() => setOpen((v) => !v), []);
 
   async function handleNewChat() {
-    const session = await createSession("New conversation");
-    router.push(`/session/${session.sessionId}`);
+    try {
+      const session = await createSession("New conversation");
+      router.push(`/session/${session.sessionId}`);
+    } catch (err) {
+      if (err instanceof UnauthenticatedError) {
+        router.replace("/login");
+      }
+    }
   }
 
   async function handleDelete(sessionId: string) {
-    await deleteSession(sessionId);
-    // if we just deleted the active session, go back to home
-    if (typeof window !== "undefined" && window.location.pathname.includes(sessionId)) {
-      router.push("/");
+    try {
+      await deleteSession(sessionId);
+      if (typeof window !== "undefined" && window.location.pathname.includes(sessionId)) {
+        router.push("/");
+      }
+    } catch (err) {
+      if (err instanceof UnauthenticatedError) {
+        router.replace("/login");
+      }
     }
   }
 

@@ -27,7 +27,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="Copy"
-      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
     >
       {copied ? (
         <><Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.5} /><span className="text-emerald-500">Copied</span></>
@@ -57,19 +57,19 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
 
       {/* ── Thinking block ─────────────────────────────────────────────────── */}
       {hasThinking && (
-        <div className="w-full rounded-xl border border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
-            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Thinking</span>
-            {isStreaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />}
+        <div className="w-full rounded-xl border border-indigo-100 bg-indigo-50/60">
+          <div className="flex items-center gap-2 border-b border-indigo-100 px-3 py-2">
+            <span className="text-xs font-semibold text-indigo-500">Thinking</span>
+            {isStreaming && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />}
           </div>
-          <div className="space-y-2 px-3 py-2.5">
+          <div className="space-y-3 px-3 py-2.5">
             {(message.planSteps ?? []).length > 0 && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Plan</p>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">Plan</p>
                 <ol className="space-y-1.5">
                   {(message.planSteps ?? []).map((step, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-700">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600">
                         {i + 1}
                       </span>
                       {step}
@@ -80,16 +80,16 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             )}
             {(message.thinkingSteps ?? []).length > 0 && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Executing</p>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">Executing</p>
                 <ul className="space-y-1.5">
                   {(message.thinkingSteps ?? []).map((s, i) => (
-                    <li key={i} className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                    <li key={i} className="flex items-center gap-2 text-xs text-zinc-700">
                       {s.status === "done" ? (
                         <Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.5} />
                       ) : (
-                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-200 border-t-amber-400" />
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-100 border-t-indigo-400" />
                       )}
-                      <span className={s.status === "done" ? "line-through opacity-50" : ""}>{s.label}</span>
+                      <span className={s.status === "done" ? "opacity-40 line-through" : ""}>{s.label}</span>
                     </li>
                   ))}
                 </ul>
@@ -102,11 +102,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       {/* ── Message bubble ──────────────────────────────────────────────────── */}
       {(message.content || isStreaming) && (
         isMarkdown ? (
-          <div className="w-full rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <div className="flex justify-end border-b border-zinc-200 px-2 py-1 dark:border-zinc-700">
+          <div className="w-full rounded-xl border border-zinc-200 bg-white">
+            <div className="flex justify-end border-b border-zinc-200 px-2 py-1">
               <CopyButton text={message.content} />
             </div>
-            <div className="px-4 py-3 text-sm text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none prose-p:my-1.5 prose-pre:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-headings:my-2 prose-code:rounded-md prose-code:bg-zinc-100 prose-code:px-1 prose-code:py-0.5 dark:prose-code:bg-zinc-800">
+            <div className="px-4 py-3 text-sm text-zinc-800 prose prose-sm max-w-none prose-p:my-1.5 prose-pre:my-2 prose-ul:my-1.5 prose-ol:my-1.5 prose-headings:my-2 prose-code:rounded-md prose-code:bg-zinc-100 prose-code:px-1 prose-code:py-0.5">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
               {isStreaming && <Caret />}
             </div>
@@ -116,7 +116,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word ${
               isUser
                 ? "rounded-br-sm bg-indigo-600 text-white"
-                : "rounded-bl-sm bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100"
+                : "rounded-bl-sm bg-zinc-100 text-zinc-800"
             }`}
           >
             <span className="whitespace-pre-wrap">{message.content}</span>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { SquarePen, MessageSquareDot, Trash2 } from "lucide-react";
+import { SquarePen, MessageSquareDot, Trash2, LogOut } from "lucide-react";
 import { Spinner } from "@/src/components/ui/Spinner";
+import { signOutUser } from "@/src/services/authService";
 import type { Session } from "@/src/types";
 
 interface SessionSidebarProps {
@@ -35,6 +36,11 @@ export function SessionSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const activeId = pathname.startsWith("/session/") ? pathname.split("/session/")[1] : null;
+
+  async function handleLogout() {
+    await signOutUser();
+    router.replace("/login");
+  }
 
   return (
     <>
@@ -118,6 +124,17 @@ export function SessionSidebar({
               </div>
             );
           })}
+        </div>
+
+        {/* Logout */}
+        <div className="border-t border-zinc-200 px-3 py-3">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={2} />
+            Log out
+          </button>
         </div>
       </aside>
     </>
