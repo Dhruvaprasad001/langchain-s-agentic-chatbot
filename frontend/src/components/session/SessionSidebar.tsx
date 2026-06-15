@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { SquarePen, MessageSquareDot, Trash2, LogOut, Sparkles } from "lucide-react";
+import { SquarePen, MessageSquareDot, Trash2, LogOut, Sparkles, Brain } from "lucide-react";
 import { Spinner } from "@/src/components/ui/Spinner";
+import { MemoryModal } from "@/src/components/session/MemoryModal";
 import { formatSessionDate } from "@/src/lib/formatDate";
 import type { Session } from "@/src/types";
 import Image from "next/image";
@@ -30,6 +32,7 @@ export function SessionSidebar({
 }: SessionSidebarProps) {
   const pathname = usePathname();
   const activeId = pathname.startsWith("/session/") ? pathname.split("/session/")[1] : null;
+  const [memoryOpen, setMemoryOpen] = useState(false);
 
   return (
     <>
@@ -132,8 +135,15 @@ export function SessionSidebar({
           })}
         </div>
 
-        {/* Logout */}
+        {/* Footer — Memory + Logout */}
         <div className="px-3 py-3" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
+          <button
+            onClick={() => setMemoryOpen(true)}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-500 transition-all hover:bg-indigo-600/10 hover:text-indigo-400"
+          >
+            <Brain className="h-3.5 w-3.5" strokeWidth={2} />
+            Memory
+          </button>
           <button
             onClick={onLogout}
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-500 transition-all hover:bg-red-500/10 hover:text-red-400"
@@ -143,6 +153,8 @@ export function SessionSidebar({
           </button>
         </div>
       </aside>
+
+      <MemoryModal open={memoryOpen} onClose={() => setMemoryOpen(false)} />
     </>
   );
 }

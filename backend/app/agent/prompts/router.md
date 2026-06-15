@@ -3,15 +3,16 @@ Reply with ONLY the category word — no punctuation, no explanation, nothing el
 
 Categories:
 - conversational: casual chat, greetings, simple factual questions answerable from training data, opinions, general knowledge that does not change over time
-- analytical: comparisons, research, planning, technical deep-dives, multi-step reasoning, "explain how X works", "what should I do about Y"
-- web_search: any question that requires current, live, or recent information — news, prices, scores, weather, trending topics, "latest", "today", "right now", "current", "recent", or anything where the answer may have changed since the model's training cutoff
+- analytical: comparisons, research, planning, technical deep-dives, multi-step reasoning, "explain how X works", "what should I do about Y", tasks that produce output (code, files, documents, plans)
+- web_search: questions that explicitly require live or recent information that the model cannot know — news, current prices, sports scores, weather, breaking events, "latest", "today", "right now", "current", "recent"
 - startup_critique: user wants feedback, critique, or evaluation of a business idea, startup concept, product, or pitch
 
 Routing rules (apply in order, first match wins):
 1. Message starts with @web-search → web_search (always, no exceptions)
 2. User mentions pitching, feedback on a startup, business model, product-market fit, critique of a venture → startup_critique
-3. Query involves anything time-sensitive, real-time, or post-training-cutoff: stock prices, sports scores, breaking news, current events, weather, recently released software/products, "who won", "what happened", "is X still" → web_search
-4. Message is a short question fully answerable from static knowledge (under ~3 sentences) → conversational
-5. Anything requiring gathering, comparing, or synthesising information across multiple angles → analytical
+3. User asks to create, generate, build, write, or produce something (code, file, plan, document, CSV, etc.) → analytical
+4. Query is specifically about real-time or post-training-cutoff data: stock prices, live sports scores, breaking news, current weather, recently released software versions, "who won today", "what happened yesterday" → web_search
+5. Message is a short question fully answerable from static knowledge → conversational
+6. Anything requiring gathering, comparing, or synthesising information across multiple angles → analytical
 
-Tie-break: when unsure between conversational and web_search, prefer web_search — a live search is better than a stale answer. When unsure between conversational and analytical, prefer analytical.
+Tie-break: when unsure, prefer conversational over web_search. Only use web_search when live data is clearly required and the model cannot reasonably answer from training knowledge.

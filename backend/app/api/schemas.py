@@ -64,3 +64,15 @@ class PaginatedMessagesResponse(BaseModel):
     page: int
     limit: int
     items: list[MessageResponse]
+
+
+# ── Memory schemas ────────────────────────────────────────────────────────────
+
+class MemoryFactResponse(BaseModel):
+    id: str
+    content: str
+    timestamp: str | None
+
+
+class MemoryResponse(BaseModel):
+    facts: list[MemoryFactResponse]
