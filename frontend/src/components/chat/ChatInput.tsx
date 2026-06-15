@@ -55,7 +55,7 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
         {/* Mode tags row */}
         <div className="mb-1.5 flex items-center gap-2">
           {isWebSearch ? (
-            <span className="flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600">
+            <span className="flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[0.75rem] font-medium text-indigo-600">
               <Search className="h-3 w-3" strokeWidth={2.5} />
               Web Search
               <button
@@ -71,7 +71,7 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
               type="button"
               onClick={activateWebSearch}
               disabled={disabled}
-              className="flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-0.5 text-xs font-medium text-zinc-400 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40"
+              className="flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-0.5 text-[0.75rem] font-medium text-zinc-400 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-40"
             >
               <Search className="h-3 w-3" strokeWidth={2} />
               Web Search
@@ -103,7 +103,7 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             disabled={disabled}
             placeholder={disabled ? "Thinking…" : isWebSearch ? "Search the web…" : "Message Xenon AI"}
-            className="flex-1 resize-none bg-transparent text-sm text-zinc-900 placeholder-zinc-400 outline-none disabled:cursor-not-allowed"
+            className="flex-1 resize-none bg-transparent text-[0.875rem] text-zinc-900 placeholder-zinc-400 outline-none disabled:cursor-not-allowed"
           />
           <button
             onClick={submit}

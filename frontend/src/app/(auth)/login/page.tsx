@@ -27,12 +27,12 @@ export default function LoginPage() {
     <div className="flex h-screen items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-6 rounded-2xl border border-zinc-200 bg-white p-10 shadow-md">
         <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Xenon AI</h1>
-          <p className="text-sm text-zinc-400">Use your Google account to continue</p>
+          <h1 className="text-[1.5rem] font-semibold tracking-tight text-zinc-900">Xenon AI</h1>
+          <p className="text-[0.875rem] text-zinc-400">Use your Google account to continue</p>
         </div>
         <button
           onClick={signIn}
-          className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
+          className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-5 py-2.5 text-[0.875rem] font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             <path
