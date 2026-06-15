@@ -25,13 +25,6 @@ export function useSessions(): UseSessionsReturn {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  function handleAuthError(err: unknown): never {
-    if (err instanceof UnauthenticatedError) {
-      router.replace("/login");
-    }
-    throw err;
-  }
-
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -63,7 +56,10 @@ export function useSessions(): UseSessionsReturn {
       await refresh();
       return session;
     } catch (err) {
-      handleAuthError(err);
+      if (err instanceof UnauthenticatedError) {
+        router.replace("/login");
+        throw err;
+      }
       const msg = err instanceof Error ? err.message : "Failed to create session";
       setError(msg);
       throw err;
@@ -77,7 +73,10 @@ export function useSessions(): UseSessionsReturn {
       await apiDelete(token, sessionId);
       await refresh();
     } catch (err) {
-      handleAuthError(err);
+      if (err instanceof UnauthenticatedError) {
+        router.replace("/login");
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Failed to delete session";
       setError(msg);
       throw err;
