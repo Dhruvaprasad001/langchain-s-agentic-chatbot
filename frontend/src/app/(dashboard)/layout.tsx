@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SessionSidebar } from "@/src/components/session/SessionSidebar";
 import { useSessions } from "@/src/hooks/useSessions";
-import { UnauthenticatedError } from "@/src/services/authService";
+import { signOutUser, UnauthenticatedError } from "@/src/services/authService";
 
 // ── Sidebar context — lets child pages toggle and query sidebar state ─────────
 
@@ -44,6 +44,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
+  function handleSelectSession(sessionId: string) {
+    router.push(`/session/${sessionId}`);
+  }
+
   async function handleDelete(sessionId: string) {
     try {
       await deleteSession(sessionId);
@@ -57,6 +61,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }
 
+  async function handleLogout() {
+    await signOutUser();
+    router.replace("/login");
+  }
+
   return (
     <SidebarContext.Provider value={{ open, toggle, refreshSessions: refresh }}>
       <div className="flex h-screen overflow-hidden bg-white">
@@ -66,7 +75,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           open={open}
           onClose={() => setOpen(false)}
           onNewChat={handleNewChat}
+          onSelectSession={handleSelectSession}
           onDelete={handleDelete}
+          onLogout={handleLogout}
         />
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {children}

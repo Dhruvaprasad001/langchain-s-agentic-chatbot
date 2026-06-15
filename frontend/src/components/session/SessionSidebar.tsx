@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { SquarePen, MessageSquareDot, Trash2, LogOut } from "lucide-react";
 import { Spinner } from "@/src/components/ui/Spinner";
-import { signOutUser } from "@/src/services/authService";
+import { formatSessionDate } from "@/src/lib/formatDate";
 import type { Session } from "@/src/types";
 
 interface SessionSidebarProps {
@@ -12,17 +12,9 @@ interface SessionSidebarProps {
   open: boolean;
   onClose: () => void;
   onNewChat: () => void;
+  onSelectSession: (sessionId: string) => void;
   onDelete: (sessionId: string) => void;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-  if (diffDays === 0) return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return d.toLocaleDateString(undefined, { weekday: "short" });
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  onLogout: () => void;
 }
 
 export function SessionSidebar({
@@ -31,16 +23,12 @@ export function SessionSidebar({
   open,
   onClose,
   onNewChat,
+  onSelectSession,
   onDelete,
+  onLogout,
 }: SessionSidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const activeId = pathname.startsWith("/session/") ? pathname.split("/session/")[1] : null;
-
-  async function handleLogout() {
-    await signOutUser();
-    router.replace("/login");
-  }
 
   return (
     <>
@@ -99,19 +87,17 @@ export function SessionSidebar({
             return (
               <div
                 key={s.sessionId}
-                onClick={() => { router.push(`/session/${s.sessionId}`); onClose(); }}
+                onClick={() => { onSelectSession(s.sessionId); onClose(); }}
                 className={`group flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${
-                  isActive
-                    ? "bg-zinc-100"
-                    : "hover:bg-zinc-50"
+                  isActive ? "bg-zinc-100" : "hover:bg-zinc-50"
                 }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className={`truncate text-sm ${isActive ? "font-medium text-zinc-900" : "text-zinc-600"}`}>
                     {s.title}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-zinc-400">
-                    {formatDate(s.updatedAt)}
+                  <p className="mt-0.5 text-3xs text-zinc-400">
+                    {formatSessionDate(s.updatedAt)}
                   </p>
                 </div>
                 <button
@@ -129,7 +115,7 @@ export function SessionSidebar({
         {/* Logout */}
         <div className="border-t border-zinc-200 px-3 py-3">
           <button
-            onClick={handleLogout}
+            onClick={onLogout}
             className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50"
           >
             <LogOut className="h-4 w-4" strokeWidth={2} />

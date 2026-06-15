@@ -1,4 +1,5 @@
 import type { Session } from "@/src/types";
+import { formatSessionDate } from "@/src/lib/formatDate";
 
 interface SessionCardProps {
   session: Session;
@@ -7,31 +8,22 @@ interface SessionCardProps {
   onDelete: (sessionId: string) => void;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export function SessionCard({ session, active = false, onSelect, onDelete }: SessionCardProps) {
   return (
     <div
       className={`group flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors cursor-pointer ${
         active
-          ? "bg-neutral-200 dark:bg-neutral-700"
-          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          ? "bg-neutral-200"
+          : "hover:bg-neutral-100"
       }`}
       onClick={() => onSelect(session.sessionId)}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+        <p className="truncate text-sm font-medium text-neutral-900">
           {session.title}
         </p>
-        <p className="truncate text-xs text-neutral-400 dark:text-neutral-500">
-          {formatDate(session.updatedAt)}
+        <p className="truncate text-xs text-neutral-400">
+          {formatSessionDate(session.updatedAt)}
         </p>
       </div>
       <button
@@ -39,7 +31,7 @@ export function SessionCard({ session, active = false, onSelect, onDelete }: Ses
           e.stopPropagation();
           onDelete(session.sessionId);
         }}
-        className="ml-2 hidden rounded p-1 text-neutral-400 hover:bg-neutral-200 hover:text-red-500 group-hover:flex dark:hover:bg-neutral-700"
+        className="ml-2 hidden rounded p-1 text-neutral-400 hover:bg-neutral-200 hover:text-red-500 group-hover:flex"
         aria-label="Delete session"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

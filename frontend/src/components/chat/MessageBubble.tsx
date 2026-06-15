@@ -27,7 +27,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="Copy"
-      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+      className="flex items-center gap-1 rounded-md px-1.5 py-1 text-3xs font-medium text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
     >
       {copied ? (
         <><Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.5} /><span className="text-emerald-500">Copied</span></>
@@ -70,11 +70,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
           <div className="space-y-3 px-3 py-2.5">
             {(message.planSteps ?? []).length > 0 && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">Plan</p>
+                <p className="mb-1.5 text-2xs font-semibold uppercase tracking-widest text-indigo-400">Plan</p>
                 <ol className="space-y-1.5">
                   {(message.planSteps ?? []).map((step, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-zinc-700">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-600">
+                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-2xs font-bold text-indigo-600">
                         {i + 1}
                       </span>
                       {step}
@@ -85,7 +85,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             )}
             {(message.thinkingSteps ?? []).length > 0 && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-indigo-400">Executing</p>
+                <p className="mb-1.5 text-2xs font-semibold uppercase tracking-widest text-indigo-400">Executing</p>
                 <ul className="space-y-1.5">
                   {(message.thinkingSteps ?? []).map((s, i) => (
                     <li key={i} className="flex items-center gap-2 text-xs text-zinc-700">
@@ -126,7 +126,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
           >
             {/* Web search pill */}
             {isWebSearch && (
-              <span className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-indigo-200">
+              <span className="mb-1.5 flex items-center gap-1 text-2xs font-semibold uppercase tracking-widest text-indigo-200">
                 <Search className="h-3 w-3" strokeWidth={2.5} />
                 Web search
               </span>

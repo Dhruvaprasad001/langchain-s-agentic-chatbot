@@ -23,6 +23,25 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ── Type scale (all values in rem) ─────────────────────────────────────
+   *  2xs  0.625rem  10px  tiny badges / labels
+   *  3xs  0.6875rem 11px  fine-print meta
+   *  xs   0.75rem   12px  captions
+   *  sm   0.875rem  14px  body / ui text
+   *  base 1rem      16px  large body
+   *  lg   1.125rem  18px  subheadings
+   *  xl   1.25rem   20px  section headings
+   *  2xl  1.5rem    24px  page headings
+   * ────────────────────────────────────────────────────────────────────── */
+  --font-size-2xs:  0.625rem;
+  --font-size-3xs:  0.6875rem;
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
 }
 
 body {
