@@ -21,7 +21,7 @@ export function ChatNavbar({ title, onToggleSidebar, onNewChat }: ChatNavbarProp
 
       {/* Centred title — uses absolute so it's always truly centred */}
       {title && (
-        <span className="pointer-events-none absolute inset-x-0 mx-auto max-w-[55%] truncate text-center text-sm font-medium text-zinc-600">
+        <span className="pointer-events-none absolute inset-x-0 mx-auto max-w-[55%] truncate text-center text-[0.875rem] font-medium text-zinc-600">
           {title}
         </span>
       )}

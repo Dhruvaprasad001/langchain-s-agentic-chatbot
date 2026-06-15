@@ -28,8 +28,7 @@ export default function DashboardPage() {
       <ChatNavbar onToggleSidebar={toggle} onNewChat={handleNewChat} />
 
       {/* Empty state */}
-      <div className="flex flex-1 flex-col -mt-24  items-center justify-center gap-4 text-center">
-       <Image src="/ChatGPT Image Jun 14, 2026, 09_44_49 PM Background Removed.png" alt="Xenon AI" width={300} height={300} />
+      <div className="flex flex-1 flex-col  items-center justify-center gap-4 text-center">
         <div>
           <p className="-mt-18 text-[1rem] text-neutral-400">
             Pick one from the sidebar or start a new chat.

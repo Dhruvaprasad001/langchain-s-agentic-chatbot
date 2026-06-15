@@ -5,6 +5,7 @@ import { SquarePen, MessageSquareDot, Trash2, LogOut } from "lucide-react";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { formatSessionDate } from "@/src/lib/formatDate";
 import type { Session } from "@/src/types";
+import Image from "next/image";
 
 interface SessionSidebarProps {
   sessions: Session[];
@@ -49,9 +50,12 @@ export function SessionSidebar({
       >
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4">
-          <span className="text-base font-bold tracking-tight text-zinc-900">
-            Xenon AI
-          </span>
+         <div className="flex items-center gap-2">
+          <span className="text-[1rem] font-bold tracking-tight text-zinc-900">
+              Xenon AI
+            </span>
+            <Image src="/ChatGPT Image Jun 15, 2026, 08_02_06 AM.png" alt="Xenon AI" width={40} height={40} />
+         </div>
           <button
             onClick={onNewChat}
             title="New chat"
@@ -72,10 +76,10 @@ export function SessionSidebar({
           {!loading && sessions.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-14 text-center">
               <MessageSquareDot className="h-8 w-8 text-zinc-300" />
-              <p className="text-xs text-zinc-400">No conversations yet</p>
+              <p className="text-[0.75rem] text-zinc-400">No conversations yet</p>
               <button
                 onClick={onNewChat}
-                className="text-xs font-medium text-indigo-500 hover:text-indigo-700"
+                className="text-[0.75rem] font-medium text-indigo-500 hover:text-indigo-700"
               >
                 Start one →
               </button>
@@ -93,10 +97,10 @@ export function SessionSidebar({
                 }`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm ${isActive ? "font-medium text-zinc-900" : "text-zinc-600"}`}>
+                  <p className={`truncate text-[0.875rem] ${isActive ? "font-medium text-zinc-900" : "text-zinc-600"}`}>
                     {s.title}
                   </p>
-                  <p className="mt-0.5 text-3xs text-zinc-400">
+                  <p className="mt-0.5 text-[0.875rem] text-zinc-400">
                     {formatSessionDate(s.updatedAt)}
                   </p>
                 </div>
@@ -116,7 +120,7 @@ export function SessionSidebar({
         <div className="border-t border-zinc-200 px-3 py-3">
           <button
             onClick={onLogout}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[0.875rem] text-red-500 transition-colors hover:bg-red-50"
           >
             <LogOut className="h-4 w-4" strokeWidth={2} />
             Log out

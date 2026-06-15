@@ -19,10 +19,10 @@ export function SessionCard({ session, active = false, onSelect, onDelete }: Ses
       onClick={() => onSelect(session.sessionId)}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-900">
+        <p className="truncate text-[0.875rem] font-medium text-neutral-900">
           {session.title}
         </p>
-        <p className="truncate text-xs text-neutral-400">
+        <p className="truncate text-[0.75rem] text-neutral-400">
           {formatSessionDate(session.updatedAt)}
         </p>
       </div>
