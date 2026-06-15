@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SquarePen, MessageSquareDot, Trash2, LogOut, Sparkles, Brain, SlidersHorizontal } from "lucide-react";
 import { Spinner } from "@/src/components/ui/Spinner";
@@ -8,11 +8,13 @@ import { MemoryModal } from "@/src/components/session/MemoryModal";
 import { CustomRulesModal } from "@/src/components/session/CustomRulesModal";
 import { formatSessionDate } from "@/src/lib/formatDate";
 import type { Session } from "@/src/types";
-import Image from "next/image";
 
 interface SessionSidebarProps {
   sessions: Session[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  onLoadMore: () => Promise<void>;
   open: boolean;
   onClose: () => void;
   onNewChat: () => void;
@@ -24,6 +26,9 @@ interface SessionSidebarProps {
 export function SessionSidebar({
   sessions,
   loading,
+  loadingMore,
+  hasMore,
+  onLoadMore,
   open,
   onClose,
   onNewChat,
@@ -35,6 +40,25 @@ export function SessionSidebar({
   const activeId = pathname.startsWith("/session/") ? pathname.split("/session/")[1] : null;
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [customRulesOpen, setCustomRulesOpen] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Intersection observer — fires onLoadMore when the bottom sentinel is visible
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore]);
 
   return (
     <>
@@ -135,6 +159,14 @@ export function SessionSidebar({
               </div>
             );
           })}
+
+          {/* Sentinel + loading indicator at the bottom */}
+          <div ref={sentinelRef} className="h-1" />
+          {loadingMore && (
+            <div className="flex justify-center py-3">
+              <Spinner size="sm" />
+            </div>
+          )}
         </div>
 
         {/* Footer — Custom Rules + Memory + Logout */}

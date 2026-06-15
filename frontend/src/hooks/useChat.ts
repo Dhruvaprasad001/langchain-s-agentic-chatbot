@@ -8,14 +8,18 @@ import type { Message, ThinkingStep } from "@/src/types";
 interface UseChatReturn {
   messages: Message[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
   sending: boolean;
-  pendingReply: boolean;   // true while polling for a server-side reply after refresh
+  pendingReply: boolean;
   error: string | null;
   sendMessage: (content: string) => void;
 }
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS  = 90_000;
+const PAGE_LIMIT = 20;
 
 function tempId() {
   return `tmp-${Date.now()}-${Math.random()}`;
@@ -24,12 +28,17 @@ function tempId() {
 export function useChat(sessionId: string): UseChatReturn {
   const [messages, setMessages]     = useState<Message[]>([]);
   const [loading, setLoading]       = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore]       = useState(false);
   const [sending, setSending]       = useState(false);
   const [pendingReply, setPending]  = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const streamingIdRef              = useRef<string | null>(null);
   const pollTimerRef                = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollStartRef                = useRef<number>(0);
+  // Track which page of history we've loaded (oldest page we've fetched so far)
+  const oldestPageRef               = useRef<number>(1);
+  const totalMessagesRef            = useRef<number>(0);
 
   // ── Stop any running poll ────────────────────────────────────────────────
   function stopPolling() {
@@ -40,23 +49,29 @@ export function useChat(sessionId: string): UseChatReturn {
     setPending(false);
   }
 
-  // ── Poll Firestore every POLL_INTERVAL_MS until an assistant reply appears
+  // ── Poll until an assistant reply appears ────────────────────────────────
   function startPolling() {
     stopPolling();
     setPending(true);
     pollStartRef.current = Date.now();
 
     pollTimerRef.current = setInterval(async () => {
-      // Timeout guard
       if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
         stopPolling();
         return;
       }
       try {
-        const { messages: fresh } = await getSession(sessionId);
+        // Poll the most-recent page only
+        const { messages: fresh, total } = await getSession(sessionId, 1, PAGE_LIMIT);
+        totalMessagesRef.current = total;
         const lastFresh = fresh[fresh.length - 1];
         if (lastFresh?.role === "assistant") {
-          setMessages(fresh);
+          setMessages((prev) => {
+            // Replace the most-recent PAGE_LIMIT messages with the fresh ones,
+            // keeping any older pages that were already prepended.
+            const olderMessages = prev.slice(0, Math.max(0, prev.length - PAGE_LIMIT));
+            return [...olderMessages, ...fresh];
+          });
           stopPolling();
         }
       } catch {
@@ -65,16 +80,17 @@ export function useChat(sessionId: string): UseChatReturn {
     }, POLL_INTERVAL_MS);
   }
 
-  // ── Load history on mount ─────────────────────────────────────────────────
+  // ── Load the initial (most-recent) page of history ───────────────────────
   const loadHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
+    oldestPageRef.current = 1;
     try {
-      const { messages: history } = await getSession(sessionId);
+      const { messages: history, total } = await getSession(sessionId, 1, PAGE_LIMIT);
+      totalMessagesRef.current = total;
       setMessages(history);
+      setHasMore(total > PAGE_LIMIT);
 
-      // If the last persisted message is from the user, the server is likely
-      // still streaming (or the response was lost). Poll until it appears.
       const last = history[history.length - 1];
       if (last?.role === "user") {
         startPolling();
@@ -89,8 +105,32 @@ export function useChat(sessionId: string): UseChatReturn {
 
   useEffect(() => {
     loadHistory();
-    return () => stopPolling();          // clean up on unmount / session change
+    return () => stopPolling();
   }, [loadHistory]);
+
+  // ── Load an older page (prepend to the top) ───────────────────────────────
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const nextOlderPage = oldestPageRef.current + 1;
+    try {
+      const { messages: older, total } = await getSession(sessionId, nextOlderPage, PAGE_LIMIT);
+      totalMessagesRef.current = total;
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.messageId));
+        const fresh = older.filter((m) => !existingIds.has(m.messageId));
+        return [...fresh, ...prev];
+      });
+      oldestPageRef.current = nextOlderPage;
+      // hasMore: total messages > messages we have loaded so far
+      setHasMore(total > nextOlderPage * PAGE_LIMIT);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load more messages");
+    } finally {
+      setLoadingMore(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingMore, sessionId]);
 
   // ── Send a new message ─────────────────────────────────────────────────────
   function sendMessage(content: string): void {
@@ -122,62 +162,57 @@ export function useChat(sessionId: string): UseChatReturn {
     streamMessage(
       sessionId,
       content.trim(),
-      // plain text token
-          (delta) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.messageId === streamingIdRef.current
-                  ? { ...m, content: m.content + delta }
-                  : m,
-              ),
-            );
-          },
-          // done
-          () => {
-            setSending(false);
-            streamingIdRef.current = null;
-          },
-          // error
-          (err) => {
-            setError(err.message);
-            setSending(false);
-            streamingIdRef.current = null;
-          },
-          // plan step
-          (step) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.messageId === streamingIdRef.current
-                  ? { ...m, planSteps: [...(m.planSteps ?? []), step] }
-                  : m,
-              ),
-            );
-          },
-          // thinking: step label + status
-          (stepLabel, status) => {
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.messageId !== streamingIdRef.current) return m;
-                const existing = m.thinkingSteps ?? [];
-                if (status === "start") {
-                  return {
-                    ...m,
-                    thinkingSteps: [...existing, { label: stepLabel, status: "start" } as ThinkingStep],
-                  };
-                }
-                return {
-                  ...m,
-                  thinkingSteps: existing.map((s) =>
-                    s.label === stepLabel && s.status === "start"
-                      ? { ...s, status: "done" as const }
-                      : s,
-                  ),
-                };
-              }),
-            );
-          },
+      (delta) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.messageId === streamingIdRef.current
+              ? { ...m, content: m.content + delta }
+              : m,
+          ),
         );
+      },
+      () => {
+        setSending(false);
+        streamingIdRef.current = null;
+      },
+      (err) => {
+        setError(err.message);
+        setSending(false);
+        streamingIdRef.current = null;
+      },
+      (step) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.messageId === streamingIdRef.current
+              ? { ...m, planSteps: [...(m.planSteps ?? []), step] }
+              : m,
+          ),
+        );
+      },
+      (stepLabel, status) => {
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.messageId !== streamingIdRef.current) return m;
+            const existing = m.thinkingSteps ?? [];
+            if (status === "start") {
+              return {
+                ...m,
+                thinkingSteps: [...existing, { label: stepLabel, status: "start" } as ThinkingStep],
+              };
+            }
+            return {
+              ...m,
+              thinkingSteps: existing.map((s) =>
+                s.label === stepLabel && s.status === "start"
+                  ? { ...s, status: "done" as const }
+                  : s,
+              ),
+            };
+          }),
+        );
+      },
+    );
   }
 
-  return { messages, loading, sending, pendingReply, error, sendMessage };
+  return { messages, loading, loadingMore, hasMore, loadMore, sending, pendingReply, error, sendMessage };
 }
