@@ -8,14 +8,14 @@ import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
 import { MessageList } from "@/src/components/chat/MessageList";
 import { ChatInput } from "@/src/components/chat/ChatInput";
 import { Spinner } from "@/src/components/ui/Spinner";
-import { createSession, getSessionTitle } from "@/src/services/sessionService";
+import { createSession } from "@/src/services/sessionService";
 
 function SessionPageInner({ sessionId }: { sessionId: string }) {
   const searchParams = useSearchParams();
   const initialMessage = searchParams.get("q");
 
-  const { messages, loading, sending, pendingReply, error, sendMessage } = useChat(sessionId);
-  const { toggle, refreshSessions } = useSidebar();
+  const { messages, loading, loadingMore, hasMore, loadMore, sending, pendingReply, error, sendMessage } = useChat(sessionId);
+  const { toggle, sessions, refreshSessions } = useSidebar();
   const router = useRouter();
 
   const [sessionTitle, setSessionTitle] = useState<string | undefined>(undefined);
@@ -23,20 +23,17 @@ function SessionPageInner({ sessionId }: { sessionId: string }) {
   const prevSendingRef = useRef(false);
   const autoSentRef = useRef(false);
 
-  // fetch title once on mount
+  // derive title from the already-fetched sessions list in sidebar context
   useEffect(() => {
     isFirstMessageRef.current = true;
-    getSessionTitle(sessionId)
-      .then((title) => {
-        if (title !== undefined) {
-          setSessionTitle(title);
-          if (title !== "New conversation") {
-            isFirstMessageRef.current = false;
-          }
-        }
-      })
-      .catch(() => {});
-  }, [sessionId]);
+    const match = sessions.find((s) => s.sessionId === sessionId);
+    if (match) {
+      setSessionTitle(match.title);
+      if (match.title !== "New conversation") {
+        isFirstMessageRef.current = false;
+      }
+    }
+  }, [sessionId, sessions]);
 
   // auto-send the suggestion message once the session has loaded
   useEffect(() => {
@@ -48,7 +45,7 @@ function SessionPageInner({ sessionId }: { sessionId: string }) {
     }
   }, [loading, initialMessage, sendMessage, sessionId]);
 
-  // after the first message finishes streaming, re-fetch the title and refresh the sidebar
+  // after the first message finishes streaming, refresh the sidebar (which updates sessions in context, updating title reactively)
   useEffect(() => {
     const wasSending = prevSendingRef.current;
     prevSendingRef.current = sending;
@@ -56,9 +53,6 @@ function SessionPageInner({ sessionId }: { sessionId: string }) {
     if (wasSending && !sending && isFirstMessageRef.current) {
       isFirstMessageRef.current = false;
       setTimeout(() => {
-        getSessionTitle(sessionId)
-          .then((title) => { if (title !== undefined) setSessionTitle(title); })
-          .catch(() => {});
         refreshSessions();
       }, 800);
     }
@@ -83,7 +77,13 @@ function SessionPageInner({ sessionId }: { sessionId: string }) {
         </div>
       ) : (
         <>
-          <MessageList messages={messages} sending={sending} />
+          <MessageList
+            messages={messages}
+            sending={sending}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+          />
           {pendingReply && !sending && (
             <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-xs text-zinc-600">
               <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UnauthenticatedError } from "@/src/services/authService";
 import {
@@ -10,15 +10,16 @@ import {
 } from "@/src/services/sessionService";
 import type { Session } from "@/src/types";
 
+const LIMIT = 20;
+
 interface UseSessionsReturn {
   sessions: Session[];
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
-  page: number;
-  limit: number;
   total: number;
-  setPage: (page: number) => void;
-  setLimit: (limit: number) => void;
+  loadMore: () => Promise<void>;
   refresh: () => Promise<void>;
   createSession: (title: string) => Promise<Session>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -27,17 +28,21 @@ interface UseSessionsReturn {
 export function useSessions(): UseSessionsReturn {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
+  const pageRef = useRef(1);
   const router = useRouter();
 
+  const hasMore = sessions.length < total;
+
+  // Reload from page 1, replacing the list
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    pageRef.current = 1;
     try {
-      const data = await apiList(page, limit);
+      const data = await apiList(1, LIMIT);
       setSessions(data.items);
       setTotal(data.total);
     } catch (err) {
@@ -50,7 +55,34 @@ export function useSessions(): UseSessionsReturn {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit]);
+  }, []);
+
+  // Append next page to the existing list
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    const nextPage = pageRef.current + 1;
+    try {
+      const data = await apiList(nextPage, LIMIT);
+      setSessions((prev) => {
+        const existingIds = new Set(prev.map((s) => s.sessionId));
+        const fresh = data.items.filter((s) => !existingIds.has(s.sessionId));
+        return [...prev, ...fresh];
+      });
+      setTotal(data.total);
+      pageRef.current = nextPage;
+    } catch (err) {
+      if (err instanceof UnauthenticatedError) {
+        router.replace("/login");
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Failed to load more sessions");
+    } finally {
+      setLoadingMore(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingMore]);
 
   useEffect(() => {
     refresh();
@@ -89,5 +121,5 @@ export function useSessions(): UseSessionsReturn {
     }
   }
 
-  return { sessions, loading, error, page, limit, total, setPage, setLimit, refresh, createSession, deleteSession };
+  return { sessions, loading, loadingMore, hasMore, error, total, loadMore, refresh, createSession, deleteSession };
 }

@@ -5,18 +5,21 @@ import { useRouter } from "next/navigation";
 import { SessionSidebar } from "@/src/components/session/SessionSidebar";
 import { useSessions } from "@/src/hooks/useSessions";
 import { signOutUser, UnauthenticatedError } from "@/src/services/authService";
+import type { Session } from "@/src/types";
 
 // ── Sidebar context — lets child pages toggle and query sidebar state ─────────
 
 interface SidebarContextValue {
   open: boolean;
   toggle: () => void;
+  sessions: Session[];
   refreshSessions: () => Promise<void>;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
   open: true,
   toggle: () => {},
+  sessions: [],
   refreshSessions: async () => {},
 });
 
@@ -29,7 +32,7 @@ export function useSidebar() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
-  const { sessions, loading, createSession, deleteSession, refresh } = useSessions();
+  const { sessions, loading, loadingMore, hasMore, loadMore, createSession, deleteSession, refresh } = useSessions();
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
 
@@ -67,11 +70,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <SidebarContext.Provider value={{ open, toggle, refreshSessions: refresh }}>
+    <SidebarContext.Provider value={{ open, toggle, sessions, refreshSessions: refresh }}>
       <div className="flex h-screen overflow-hidden" style={{ background: "var(--background)" }}>
         <SessionSidebar
           sessions={sessions}
           loading={loading}
+          loadingMore={loadingMore}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
           open={open}
           onClose={() => setOpen(false)}
           onNewChat={handleNewChat}
