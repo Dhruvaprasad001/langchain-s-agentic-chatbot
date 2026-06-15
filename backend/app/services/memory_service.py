@@ -133,7 +133,7 @@ class MemoryService:
                     user_id, exc, fact,
                 )
 
-        logger.info("[MEMORY] stored %d fact(s) for uid=%s", len(facts), user_id)
+        logger.info("SKILL: [memory_store] stored %d fact(s) uid=%s", len(facts), user_id)
 
     @classmethod
     async def retrieve_relevant(
@@ -162,7 +162,7 @@ class MemoryService:
             )
             documents: list[str] = results.get("documents", [[]])[0]
             logger.info(
-                "[MEMORY] retrieved %d relevant fact(s) uid=%s",
+                "SKILL: [memory_retrieve] retrieved %d fact(s) uid=%s",
                 len(documents), user_id,
             )
             return documents

@@ -134,7 +134,7 @@ class ChatService:
 
         # Fast-path: explicit @web-search prefix — no LLM call needed
         if last_content.strip().startswith("@web-search"):
-            logger.info("SKILL: [web_search] (explicit prefix) session_id=%s", state["session_id"])
+            logger.debug("Router fast-path: web_search session_id=%s", state["session_id"])
             return {**state, "route": "web_search"}
 
         try:
@@ -150,8 +150,10 @@ class ChatService:
             logger.warning("Router classification failed (%s) — defaulting to conversational", exc)
             route = "conversational"
 
-        if route != "conversational":
-            logger.info("SKILL: [%s] session_id=%s", route, state["session_id"])
+        if route in ("web_search", "startup_critique"):
+            logger.info("SUB-AGENT: [%s] session_id=%s", route, state["session_id"])
+        elif route == "analytical":
+            logger.info("MODE: [analytical] session_id=%s", state["session_id"])
 
         return {**state, "route": route}
 
@@ -245,7 +247,7 @@ class ChatService:
         # strip the explicit prefix if the user typed it; otherwise use the message as-is
         query = raw.replace("@web-search", "").strip() or raw.strip()
 
-        logger.info("[WEB_SEARCH] query=%r session_id=%s", query, state["session_id"])
+        logger.info("SKILL: [DuckDuckGoSearch] query=%r session_id=%s", query, state["session_id"])
 
         try:
             search = DuckDuckGoSearchRun()
@@ -383,7 +385,7 @@ class ChatService:
                 memory_context = "\n\nWhat you know about this user:\n" + "\n".join(
                     f"- {m}" for m in memories
                 )
-                logger.debug("[MEMORY] injected %d fact(s) session_id=%s", len(memories), session_id)
+        logger.debug("[MEMORY] injected %d fact(s) session_id=%s", len(memories), session_id)
 
         # build LangGraph initial state
         messages = self._to_lc_messages(history)
