@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSidebar } from "@/src/app/(dashboard)/layout";
 import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
-import { getIdToken, UnauthenticatedError } from "@/src/services/authService";
+import { UnauthenticatedError } from "@/src/services/authService";
 import { createSession } from "@/src/services/sessionService";
 
 export default function DashboardPage() {
@@ -13,8 +13,7 @@ export default function DashboardPage() {
 
   async function handleNewChat() {
     try {
-      const token = await getIdToken();
-      const session = await createSession(token, "New conversation");
+      const session = await createSession("New conversation");
       router.push(`/session/${session.sessionId}`);
     } catch (err) {
       if (err instanceof UnauthenticatedError) {

@@ -3,8 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.domain.models import Message, Session
-
 
 # ── Request schemas ───────────────────────────────────────────────────────────
 
@@ -29,7 +27,7 @@ class SessionResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_domain(cls, session: Session) -> "SessionResponse":
+    def from_domain(cls, session) -> "SessionResponse":
         return cls(
             session_id=session.session_id,
             title=session.title,
@@ -45,18 +43,13 @@ class MessageResponse(BaseModel):
     timestamp: datetime
 
     @classmethod
-    def from_domain(cls, message: Message) -> "MessageResponse":
+    def from_domain(cls, message) -> "MessageResponse":
         return cls(
             message_id=message.message_id,
             role=message.role,
             content=message.content,
             timestamp=message.timestamp,
         )
-
-
-class SessionDetailResponse(BaseModel):
-    session: SessionResponse
-    messages: list[MessageResponse]
 
 
 class PaginatedSessionsResponse(BaseModel):

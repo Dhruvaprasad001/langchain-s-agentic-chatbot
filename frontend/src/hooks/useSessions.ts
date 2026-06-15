@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getIdToken, UnauthenticatedError } from "@/src/services/authService";
+import { UnauthenticatedError } from "@/src/services/authService";
 import {
   createSession as apiCreate,
   deleteSession as apiDelete,
@@ -37,8 +37,7 @@ export function useSessions(): UseSessionsReturn {
     setLoading(true);
     setError(null);
     try {
-      const token = await getIdToken();
-      const data = await apiList(token, page, limit);
+      const data = await apiList(page, limit);
       setSessions(data.items);
       setTotal(data.total);
     } catch (err) {
@@ -60,8 +59,7 @@ export function useSessions(): UseSessionsReturn {
   async function createSession(title: string): Promise<Session> {
     setError(null);
     try {
-      const token = await getIdToken();
-      const session = await apiCreate(token, title);
+      const session = await apiCreate(title);
       await refresh();
       return session;
     } catch (err) {
@@ -78,8 +76,7 @@ export function useSessions(): UseSessionsReturn {
   async function deleteSession(sessionId: string): Promise<void> {
     setError(null);
     try {
-      const token = await getIdToken();
-      await apiDelete(token, sessionId);
+      await apiDelete(sessionId);
       await refresh();
     } catch (err) {
       if (err instanceof UnauthenticatedError) {

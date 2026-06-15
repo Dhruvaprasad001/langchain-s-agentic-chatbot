@@ -1,19 +1,5 @@
-/**
- * Session service — thin wrappers over the generated SessionsApi client.
- *
- * Public signatures are identical to the old fetch-based version so no
- * call-sites outside this file need to change.
- *
- * The generated client handles auth (Bearer token) via apiClient.ts.
- * Token is no longer accepted as a parameter — the client fetches it
- * automatically from Firebase via getIdToken() on every request.
- */
-
 import type { Message, Session } from "@/src/types";
-import type {
-  SessionResponse,
-  MessageResponse,
-} from "../../clients/api";
+import type { SessionResponse, MessageResponse } from "../../clients/api";
 import { getSessionsApi } from "@/src/services/apiClient";
 
 // ── Shape mappers ────────────────────────────────────────────────────────────
@@ -54,11 +40,7 @@ export interface PaginatedMessages {
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
-export async function listSessions(
-  _token?: string,
-  page = 1,
-  limit = 20,
-): Promise<PaginatedSessions> {
+export async function listSessions(page = 1, limit = 20): Promise<PaginatedSessions> {
   const res = await getSessionsApi().listSessionsApiV1SessionsGet({ page, limit });
   return {
     items: res.data.items.map(toSession),
@@ -68,18 +50,14 @@ export async function listSessions(
   };
 }
 
-export async function createSession(_token: string | undefined, title: string): Promise<Session> {
+export async function createSession(title: string): Promise<Session> {
   const res = await getSessionsApi().createSessionApiV1SessionsPost({
     sessionCreateRequest: { title },
   });
   return toSession(res.data);
 }
 
-export async function updateSession(
-  _token: string | undefined,
-  sessionId: string,
-  title: string,
-): Promise<Session> {
+export async function updateSession(sessionId: string, title: string): Promise<Session> {
   const res = await getSessionsApi().updateSessionApiV1SessionsSessionIdPatch({
     sessionId,
     sessionUpdateRequest: { title },
@@ -87,16 +65,11 @@ export async function updateSession(
   return toSession(res.data);
 }
 
-export async function deleteSession(_token: string | undefined, sessionId: string): Promise<void> {
+export async function deleteSession(sessionId: string): Promise<void> {
   await getSessionsApi().deleteSessionApiV1SessionsSessionIdDelete({ sessionId });
 }
 
-export async function getSession(
-  _token: string | undefined,
-  sessionId: string,
-  page = 1,
-  limit = 50,
-): Promise<PaginatedMessages> {
+export async function getSession(sessionId: string, page = 1, limit = 50): Promise<PaginatedMessages> {
   const res = await getSessionsApi().getSessionApiV1SessionsSessionIdGet({
     sessionId,
     page,

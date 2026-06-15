@@ -53,7 +53,7 @@ export function useChat(sessionId: string): UseChatReturn {
         return;
       }
       try {
-        const { messages: fresh } = await getSession(undefined, sessionId);
+        const { messages: fresh } = await getSession(sessionId);
         const lastFresh = fresh[fresh.length - 1];
         if (lastFresh?.role === "assistant") {
           setMessages(fresh);
@@ -70,7 +70,7 @@ export function useChat(sessionId: string): UseChatReturn {
     setLoading(true);
     setError(null);
     try {
-      const { messages: history } = await getSession(undefined, sessionId);
+      const { messages: history } = await getSession(sessionId);
       setMessages(history);
 
       // If the last persisted message is from the user, the server is likely

@@ -22,12 +22,6 @@ class SessionService:
         logger.info("Session created session_id=%s uid=%s", session.session_id, uid)
         return session
 
-    def list_sessions(self, uid: str) -> list[Session]:
-        logger.info("Listing sessions uid=%s", uid)
-        sessions = self._sessions.list_all(uid=uid)
-        logger.info("Returning %d session(s) uid=%s", len(sessions), uid)
-        return sessions
-
     def list_sessions_paginated(self, uid: str, page: int, limit: int) -> tuple[list[Session], int]:
         logger.info("Listing sessions (paginated) uid=%s page=%d limit=%d", uid, page, limit)
         sessions, total = self._sessions.list_paginated(uid=uid, page=page, limit=limit)

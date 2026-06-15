@@ -7,7 +7,6 @@ from app.api.schemas import (
     PaginatedMessagesResponse,
     PaginatedSessionsResponse,
     SessionCreateRequest,
-    SessionDetailResponse,
     SessionResponse,
     SessionUpdateRequest,
 )

@@ -8,7 +8,6 @@ import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
 import { MessageList } from "@/src/components/chat/MessageList";
 import { ChatInput } from "@/src/components/chat/ChatInput";
 import { Spinner } from "@/src/components/ui/Spinner";
-import { getIdToken } from "@/src/services/authService";
 import { createSession, getSessionTitle } from "@/src/services/sessionService";
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
@@ -24,8 +23,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   // fetch title once on mount
   useEffect(() => {
     isFirstMessageRef.current = true;
-    getIdToken()
-      .then(() => getSessionTitle(sessionId))
+    getSessionTitle(sessionId)
       .then((title) => {
         if (title !== undefined) {
           setSessionTitle(title);
@@ -44,10 +42,8 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
 
     if (wasSending && !sending && isFirstMessageRef.current) {
       isFirstMessageRef.current = false;
-      // small delay to let the backend fire-and-forget title write complete
       setTimeout(() => {
-        getIdToken()
-          .then(() => getSessionTitle(sessionId))
+        getSessionTitle(sessionId)
           .then((title) => { if (title !== undefined) setSessionTitle(title); })
           .catch(() => {});
         refreshSessions();
@@ -56,8 +52,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   }, [sending, sessionId, refreshSessions]);
 
   async function handleNewChat() {
-    const token = await getIdToken();
-    const session = await createSession(token, "New conversation");
+    const session = await createSession("New conversation");
     router.push(`/session/${session.sessionId}`);
   }
 
