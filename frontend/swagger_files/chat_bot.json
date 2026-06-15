@@ -6,49 +6,26 @@
   },
   "paths": {
     "/api/v1/sessions": {
-      "get": {
-        "tags": [
-          "sessions"
-        ],
-        "summary": "List Sessions",
-        "operationId": "list_sessions_api_v1_sessions_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SessionResponse"
-                  },
-                  "type": "array",
-                  "title": "Response List Sessions Api V1 Sessions Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
       "post": {
         "tags": [
           "sessions"
         ],
         "summary": "Create Session",
         "operationId": "create_session_api_v1_sessions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SessionCreateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -71,12 +48,70 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List Sessions",
+        "operationId": "list_sessions_api_v1_sessions_get",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number (1-based)",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number (1-based)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSessionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/sessions/{session_id}": {
@@ -100,6 +135,33 @@
               "type": "string",
               "title": "Session Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number (1-based)",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number (1-based)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "description": "Messages per page",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Messages per page"
           }
         ],
         "responses": {
@@ -108,7 +170,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionDetailResponse"
+                  "$ref": "#/components/schemas/PaginatedMessagesResponse"
                 }
               }
             }
@@ -356,6 +418,68 @@
         ],
         "title": "MessageResponse"
       },
+      "PaginatedMessagesResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "items"
+        ],
+        "title": "PaginatedMessagesResponse"
+      },
+      "PaginatedSessionsResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "items"
+        ],
+        "title": "PaginatedSessionsResponse"
+      },
       "SessionCreateRequest": {
         "properties": {
           "title": {
@@ -368,26 +492,6 @@
           "title"
         ],
         "title": "SessionCreateRequest"
-      },
-      "SessionDetailResponse": {
-        "properties": {
-          "session": {
-            "$ref": "#/components/schemas/SessionResponse"
-          },
-          "messages": {
-            "items": {
-              "$ref": "#/components/schemas/MessageResponse"
-            },
-            "type": "array",
-            "title": "Messages"
-          }
-        },
-        "type": "object",
-        "required": [
-          "session",
-          "messages"
-        ],
-        "title": "SessionDetailResponse"
       },
       "SessionResponse": {
         "properties": {

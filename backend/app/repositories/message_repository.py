@@ -62,6 +62,29 @@ class MessageRepository:
             )
             raise RepositoryError(f"Failed to list messages: {exc}") from exc
 
+    def list_paginated(self, uid: str, session_id: str, page: int, limit: int) -> tuple[list[Message], int]:
+        try:
+            base_query = (
+                self._col(uid, session_id)
+                .order_by("timestamp", direction=firestore.Query.ASCENDING)
+            )
+            all_docs = list(base_query.stream())
+            total = len(all_docs)
+            offset = (page - 1) * limit
+            page_docs = all_docs[offset: offset + limit]
+            messages = [self._to_domain(doc) for doc in page_docs]
+            logger.info(
+                "Loaded %d/%d message(s) page=%d limit=%d session_id=%s uid=%s",
+                len(messages), total, page, limit, session_id, uid,
+            )
+            return messages, total
+        except GoogleAPICallError as exc:
+            logger.error(
+                "Firestore error listing messages session_id=%s uid=%s: %s",
+                session_id, uid, exc,
+            )
+            raise RepositoryError(f"Failed to list messages: {exc}") from exc
+
     def delete_all(self, uid: str, session_id: str) -> None:
         try:
             docs = list(self._col(uid, session_id).stream())

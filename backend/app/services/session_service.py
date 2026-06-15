@@ -22,23 +22,38 @@ class SessionService:
         logger.info("Session created session_id=%s uid=%s", session.session_id, uid)
         return session
 
-    def list_sessions(self, uid: str) -> list[Session]:
-        logger.info("Listing sessions uid=%s", uid)
-        sessions = self._sessions.list_all(uid=uid)
-        logger.info("Returning %d session(s) uid=%s", len(sessions), uid)
-        return sessions
+    def list_sessions_paginated(self, uid: str, page: int, limit: int) -> tuple[list[Session], int]:
+        logger.info("Listing sessions (paginated) uid=%s page=%d limit=%d", uid, page, limit)
+        sessions, total = self._sessions.list_paginated(uid=uid, page=page, limit=limit)
+        logger.info("Returning %d/%d session(s) uid=%s", len(sessions), total, uid)
+        return sessions, total
 
     def get_session_with_messages(self, uid: str, session_id: str) -> tuple[Session, list[Message]]:
         logger.info("Fetching session_id=%s uid=%s", session_id, uid)
-        # verify the session exists and belongs to this user
         session = self._sessions.get(uid=uid, session_id=session_id)
-        # load the full message history ordered chronologically
         messages = self._messages.list_asc(uid=uid, session_id=session_id)
         logger.info(
             "Returning session session_id=%s with %d message(s) uid=%s",
             session_id, len(messages), uid,
         )
         return session, messages
+
+    def get_session_with_messages_paginated(
+        self, uid: str, session_id: str, page: int, limit: int
+    ) -> tuple[Session, list[Message], int]:
+        logger.info(
+            "Fetching session_id=%s (paginated) uid=%s page=%d limit=%d",
+            session_id, uid, page, limit,
+        )
+        session = self._sessions.get(uid=uid, session_id=session_id)
+        messages, total = self._messages.list_paginated(
+            uid=uid, session_id=session_id, page=page, limit=limit
+        )
+        logger.info(
+            "Returning session session_id=%s with %d/%d message(s) uid=%s",
+            session_id, len(messages), total, uid,
+        )
+        return session, messages, total
 
     def update_session_title(self, uid: str, session_id: str, title: str) -> None:
         logger.info("Updating title session_id=%s uid=%s title=%r", session_id, uid, title)

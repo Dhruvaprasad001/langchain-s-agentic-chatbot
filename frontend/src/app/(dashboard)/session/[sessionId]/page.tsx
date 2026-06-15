@@ -8,8 +8,7 @@ import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
 import { MessageList } from "@/src/components/chat/MessageList";
 import { ChatInput } from "@/src/components/chat/ChatInput";
 import { Spinner } from "@/src/components/ui/Spinner";
-import { getIdToken } from "@/src/services/authService";
-import { createSession, getSession } from "@/src/services/sessionService";
+import { createSession, getSessionTitle } from "@/src/services/sessionService";
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
@@ -24,13 +23,13 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   // fetch title once on mount
   useEffect(() => {
     isFirstMessageRef.current = true;
-    getIdToken()
-      .then((token) => getSession(token, sessionId))
-      .then(({ session }) => {
-        setSessionTitle(session.title);
-        // if the session already has a real title, first message was sent before
-        if (session.title !== "New conversation") {
-          isFirstMessageRef.current = false;
+    getSessionTitle(sessionId)
+      .then((title) => {
+        if (title !== undefined) {
+          setSessionTitle(title);
+          if (title !== "New conversation") {
+            isFirstMessageRef.current = false;
+          }
         }
       })
       .catch(() => {});
@@ -43,11 +42,9 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
 
     if (wasSending && !sending && isFirstMessageRef.current) {
       isFirstMessageRef.current = false;
-      // small delay to let the backend fire-and-forget title write complete
       setTimeout(() => {
-        getIdToken()
-          .then((token) => getSession(token, sessionId))
-          .then(({ session }) => setSessionTitle(session.title))
+        getSessionTitle(sessionId)
+          .then((title) => { if (title !== undefined) setSessionTitle(title); })
           .catch(() => {});
         refreshSessions();
       }, 800);
@@ -55,13 +52,12 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   }, [sending, sessionId, refreshSessions]);
 
   async function handleNewChat() {
-    const token = await getIdToken();
-    const session = await createSession(token, "New conversation");
+    const session = await createSession("New conversation");
     router.push(`/session/${session.sessionId}`);
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" style={{ background: "var(--chat-bg)" }}>
       <ChatNavbar
         title={sessionTitle}
         onToggleSidebar={toggle}
@@ -76,8 +72,8 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
         <>
           <MessageList messages={messages} sending={sending} />
           {pendingReply && !sending && (
-            <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-[0.75rem] text-zinc-400">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-indigo-400" />
+            <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-xs text-zinc-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
               Waiting for response…
             </div>
           )}
@@ -85,7 +81,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       )}
 
       {error && (
-        <p className="px-4 pb-1 text-center text-[0.75rem] text-red-500">{error}</p>
+        <p className="px-4 pb-1 text-center text-xs text-red-400">{error}</p>
       )}
 
       <ChatInput onSend={sendMessage} disabled={sending || loading || pendingReply} />
