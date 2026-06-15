@@ -57,7 +57,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" style={{ background: "var(--chat-bg)" }}>
       <ChatNavbar
         title={sessionTitle}
         onToggleSidebar={toggle}
@@ -72,8 +72,8 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
         <>
           <MessageList messages={messages} sending={sending} />
           {pendingReply && !sending && (
-            <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-[0.75rem] text-zinc-400">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-indigo-400" />
+            <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-xs text-zinc-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
               Waiting for response…
             </div>
           )}
@@ -81,7 +81,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       )}
 
       {error && (
-        <p className="px-4 pb-1 text-center text-[0.75rem] text-red-500">{error}</p>
+        <p className="px-4 pb-1 text-center text-xs text-red-400">{error}</p>
       )}
 
       <ChatInput onSend={sendMessage} disabled={sending || loading || pendingReply} />
