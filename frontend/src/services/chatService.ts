@@ -1,7 +1,17 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+/**
+ * Chat service — SSE streaming for the chat endpoint.
+ *
+ * The generated ChatApi (Axios) cannot consume SSE streams, so we keep
+ * a fetch-based implementation here. Everything else (base URL, auth)
+ * is aligned with the rest of the service layer:
+ *   - BACKEND_URL is sourced from apiClient (single source of truth)
+ *   - getIdToken() is called internally — callers do not pass tokens
+ */
+
+import { BACKEND_URL } from "@/src/services/apiClient";
+import { getIdToken } from "@/src/services/authService";
 
 export function streamMessage(
-  token: string,
   sessionId: string,
   message: string,
   onChunk: (delta: string) => void,
@@ -10,14 +20,17 @@ export function streamMessage(
   onPlanStep?: (step: string) => void,
   onThinking?: (stepLabel: string, status: "start" | "done") => void,
 ): void {
-  fetch(`${BACKEND_URL}/api/v1/chat/${sessionId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ message }),
-  })
+  getIdToken()
+    .then((token) =>
+      fetch(`${BACKEND_URL}/api/v1/chat/${sessionId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message }),
+      }),
+    )
     .then((res) => {
       if (!res.ok) throw new Error(`Chat request failed: ${res.statusText}`);
       if (!res.body) throw new Error("No response body");
@@ -60,7 +73,6 @@ export function streamMessage(
                   (parsed.status as "start" | "done") ?? "start",
                 );
               } else if (parsed.content) {
-                // plain token (no type field) — conversational + synthesizer
                 onChunk(parsed.content);
               }
             } catch {

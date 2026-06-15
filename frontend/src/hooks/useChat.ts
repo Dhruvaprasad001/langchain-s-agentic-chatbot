@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getIdToken } from "@/src/services/authService";
 import { getSession } from "@/src/services/sessionService";
 import { streamMessage } from "@/src/services/chatService";
 import type { Message, ThinkingStep } from "@/src/types";
@@ -54,8 +53,7 @@ export function useChat(sessionId: string): UseChatReturn {
         return;
       }
       try {
-        const token = await getIdToken();
-        const { messages: fresh } = await getSession(token, sessionId);
+        const { messages: fresh } = await getSession(undefined, sessionId);
         const lastFresh = fresh[fresh.length - 1];
         if (lastFresh?.role === "assistant") {
           setMessages(fresh);
@@ -72,8 +70,7 @@ export function useChat(sessionId: string): UseChatReturn {
     setLoading(true);
     setError(null);
     try {
-      const token = await getIdToken();
-      const { messages: history } = await getSession(token, sessionId);
+      const { messages: history } = await getSession(undefined, sessionId);
       setMessages(history);
 
       // If the last persisted message is from the user, the server is likely
@@ -122,13 +119,10 @@ export function useChat(sessionId: string): UseChatReturn {
     };
     setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
-    getIdToken()
-      .then((token) => {
-        streamMessage(
-          token,
-          sessionId,
-          content.trim(),
-          // plain text token
+    streamMessage(
+      sessionId,
+      content.trim(),
+      // plain text token
           (delta) => {
             setMessages((prev) =>
               prev.map((m) =>
@@ -183,11 +177,6 @@ export function useChat(sessionId: string): UseChatReturn {
             );
           },
         );
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Auth error");
-        setSending(false);
-      });
   }
 
   return { messages, loading, sending, pendingReply, error, sendMessage };
