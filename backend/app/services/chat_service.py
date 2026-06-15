@@ -11,6 +11,14 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
+from app.agent.prompts import (
+    EXECUTOR,
+    PLANNER,
+    ROUTER,
+    STARTUP_CRITIQUE,
+    SYNTHESIZER,
+    WEB_SEARCH,
+)
 from app.core.config import settings
 from app.exceptions import ChatStreamError
 from app.repositories.message_repository import MessageRepository
@@ -134,21 +142,7 @@ class ChatService:
 
         try:
             result = cls._router_llm.invoke([
-                {"role": "system", "content": (
-                    "Classify the user message into exactly one of these four categories. "
-                    "Reply with only the category word, nothing else.\n\n"
-                    "Categories:\n"
-                    "- conversational: casual chat, simple questions, general knowledge\n"
-                    "- analytical: comparison, research, planning, multi-step reasoning\n"
-                    "- web_search: message starts with @web-search\n"
-                    "- startup_critique: user wants feedback or critique on a business idea, "
-                    "startup, or product concept\n\n"
-                    "Rules:\n"
-                    "- If message starts with @web-search → always return web_search\n"
-                    "- If user mentions pitching an idea, getting feedback on a startup, "
-                    "critiquing a business model → startup_critique\n"
-                    "- Otherwise use your judgment between conversational and analytical"
-                )},
+                {"role": "system", "content": ROUTER},
                 {"role": "user", "content": last_content},
             ])
             route = result.content.strip().lower()
@@ -188,11 +182,7 @@ class ChatService:
 
         try:
             result = cls._analytical_llm.invoke([
-                {"role": "system", "content": (
-                    "You are a planning agent. Break the user's request into 2-4 clear execution steps. "
-                    "Return ONLY a valid JSON array of strings. No explanation, no markdown, no code fences. "
-                    'Example: ["Research X", "Compare Y and Z", "Synthesize findings"]'
-                )},
+                {"role": "system", "content": PLANNER},
                 {"role": "user", "content": original_message},
             ])
             plan: list[str] = json.loads(result.content.strip())
@@ -216,9 +206,7 @@ class ChatService:
 
         for i, step in enumerate(plan):
             result = cls._analytical_llm.invoke([
-                {"role": "system", "content": (
-                    "You are an execution agent. Complete this specific step thoroughly and concisely."
-                )},
+                {"role": "system", "content": EXECUTOR},
                 {"role": "user", "content": (
                     f"Original request: {state['original_message']}\n"
                     f"Current step: {step}\n"
@@ -241,10 +229,10 @@ class ChatService:
         )
         system = (
             f"You are a synthesis agent with the following personality:\n{cls._system_prompt}\n\n"
-            "Given the research steps below, write a clear, direct final answer. "
-            "Do not mention 'steps' or 'research' — just deliver the answer naturally.\n"
-            f"Original request: {state['original_message']}\n"
-            f"Step results:\n{step_summary}"
+            + SYNTHESIZER.format(
+                original_message=state["original_message"],
+                step_summary=step_summary,
+            )
         )
         if state.get("memory_context"):
             system += state["memory_context"]
@@ -277,11 +265,11 @@ class ChatService:
 
         system = (
             f"{cls._system_prompt}\n\n"
-            "You have just performed a web search. Synthesize the results into a clear, "
-            "direct answer. Cite key points. Be concise — no padding.\n\n"
-            f"Search query: {query}\n"
-            f"Search results:\n{results}\n\n"
-            f"Current date: {datetime.now().strftime('%B %d, %Y')}"
+            + WEB_SEARCH.format(
+                query=query,
+                results=results,
+                date=datetime.now().strftime("%B %d, %Y"),
+            )
         )
         if state.get("memory_context"):
             system += state["memory_context"]
@@ -301,22 +289,7 @@ class ChatService:
 
         system = (
             f"{cls._system_prompt}\n\n"
-            "You are now in startup critique mode. You are a sharp, experienced investor and "
-            "product thinker. Critique the idea honestly — no sugarcoating, no empty validation.\n\n"
-            "Structure your response EXACTLY like this:\n\n"
-            "## The Idea\n"
-            "One line summary of what they're building.\n\n"
-            "## What's Working\n"
-            "2-3 genuine strengths. Be specific, not generic.\n\n"
-            "## Red Flags\n"
-            "2-3 honest concerns. Market size, competition, execution risk, monetization.\n\n"
-            "## Biggest Question\n"
-            "The single most important thing they need to figure out.\n\n"
-            "## Verdict\n"
-            "One of: Early but promising / Needs rethinking / Strong foundation / Pivot needed\n"
-            "Then 2-3 lines on what to do next.\n\n"
-            "Be direct. Use your Bangalore personality. Don't pad. If the idea is weak, say so.\n\n"
-            f"Current date: {datetime.now().strftime('%B %d, %Y')}"
+            + STARTUP_CRITIQUE.format(date=datetime.now().strftime("%B %d, %Y"))
         )
         if state.get("memory_context"):
             system += state["memory_context"]
