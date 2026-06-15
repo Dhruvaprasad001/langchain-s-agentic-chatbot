@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { MessageSquarePlus } from "lucide-react";
+import Image from "next/image";
 import { useSidebar } from "@/src/app/(dashboard)/layout";
 import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
 import { getIdToken, UnauthenticatedError } from "@/src/services/authService";
@@ -28,19 +28,16 @@ export default function DashboardPage() {
       <ChatNavbar onToggleSidebar={toggle} onNewChat={handleNewChat} />
 
       {/* Empty state */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <MessageSquarePlus className="h-12 w-12 text-neutral-300" />
+      <div className="flex flex-1 flex-col -mt-24  items-center justify-center gap-4 text-center">
+       <Image src="/ChatGPT Image Jun 14, 2026, 09_44_49 PM Background Removed.png" alt="Xenon AI" width={300} height={300} />
         <div>
-          <p className="text-base font-medium text-neutral-700">
-            No conversation selected
-          </p>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="-mt-18 text-[1rem] text-neutral-400">
             Pick one from the sidebar or start a new chat.
           </p>
         </div>
         <button
           onClick={handleNewChat}
-          className="mt-2 flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-500"
+          className=" flex items-center gap-2 -mt-10 rounded-lg bg-indigo-600 px-5 py-2.5 text-[1rem] font-medium text-white transition hover:bg-indigo-500"
         >
           New Chat
         </button>
