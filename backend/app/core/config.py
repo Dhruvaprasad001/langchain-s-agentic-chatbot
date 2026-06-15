@@ -9,7 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Firebase
+    # Firebase — provide either a JSON string (preferred for cloud) or a file path
+    firebase_service_account_json: str = ""
     firebase_service_account_path: str = "./serviceAccountKey.json"
 
     # OpenAI

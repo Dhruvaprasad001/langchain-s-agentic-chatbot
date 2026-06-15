@@ -1,3 +1,4 @@
+import json
 import logging
 
 import firebase_admin
@@ -10,7 +11,10 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate(settings.firebase_service_account_path)
+    if settings.firebase_service_account_json:
+        cred = credentials.Certificate(json.loads(settings.firebase_service_account_json))
+    else:
+        cred = credentials.Certificate(settings.firebase_service_account_path)
     firebase_admin.initialize_app(cred)
 
 _bearer_scheme = HTTPBearer()
