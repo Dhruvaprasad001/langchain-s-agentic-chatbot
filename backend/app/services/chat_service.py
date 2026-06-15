@@ -134,10 +134,7 @@ class ChatService:
 
         # Fast-path: explicit @web-search prefix — no LLM call needed
         if last_content.strip().startswith("@web-search"):
-            logger.info(
-                "Router fast-path: web_search session_id=%s uid=%s",
-                state["session_id"], state["user_id"],
-            )
+            logger.info("SKILL: [web_search] (explicit prefix) session_id=%s", state["session_id"])
             return {**state, "route": "web_search"}
 
         try:
@@ -153,10 +150,9 @@ class ChatService:
             logger.warning("Router classification failed (%s) — defaulting to conversational", exc)
             route = "conversational"
 
-        logger.info(
-            "Router classified message as '%s' session_id=%s uid=%s",
-            route, state["session_id"], state["user_id"],
-        )
+        if route != "conversational":
+            logger.info("SKILL: [%s] session_id=%s", route, state["session_id"])
+
         return {**state, "route": route}
 
     @classmethod
@@ -192,10 +188,7 @@ class ChatService:
             logger.warning("[PLANNER] failed to parse plan (%s) — using fallback", exc)
             plan = ["Analyze the request", "Formulate response"]
 
-        logger.info(
-            "[PLANNER] created %d steps uid=%s session_id=%s",
-            len(plan), state["user_id"], state["session_id"],
-        )
+        logger.debug("[PLANNER] %d steps session_id=%s", len(plan), state["session_id"])
         return {**state, "original_message": original_message, "plan": plan, "step_results": []}
 
     @classmethod
@@ -214,10 +207,7 @@ class ChatService:
                 )},
             ])
             step_results.append(result.content)
-            logger.info(
-                "[EXECUTOR] completed step %d/%d uid=%s session_id=%s",
-                i + 1, len(plan), state["user_id"], state["session_id"],
-            )
+            logger.debug("[EXECUTOR] step %d/%d done session_id=%s", i + 1, len(plan), state["session_id"])
 
         return {**state, "step_results": step_results}
 
@@ -255,7 +245,7 @@ class ChatService:
         # strip the explicit prefix if the user typed it; otherwise use the message as-is
         query = raw.replace("@web-search", "").strip() or raw.strip()
 
-        logger.info("[WEB_SEARCH] query='%s' uid=%s session_id=%s", query, state["user_id"], state["session_id"])
+        logger.info("[WEB_SEARCH] query=%r session_id=%s", query, state["session_id"])
 
         try:
             search = DuckDuckGoSearchRun()
@@ -286,7 +276,7 @@ class ChatService:
     @classmethod
     def _startup_critique_agent_node(cls, state: AgentState) -> AgentState:
         """Give a structured, honest startup critique using the agent's personality."""
-        logger.info("[STARTUP_CRITIQUE] uid=%s session_id=%s", state["user_id"], state["session_id"])
+        logger.debug("[STARTUP_CRITIQUE] session_id=%s", state["session_id"])
 
         system = (
             f"{cls._system_prompt}\n\n"
@@ -372,16 +362,13 @@ class ChatService:
         """
         # verify session ownership before any LLM work
         self._session_repo.get(uid=uid, session_id=session_id)
-        logger.info("Session verified session_id=%s uid=%s", session_id, uid)
 
         # load conversation history
         history_objs = self._message_repo.list_asc(uid=uid, session_id=session_id)
         history = [{"role": m.role, "content": m.content} for m in history_objs]
-        logger.info("History loaded: %d message(s) session_id=%s uid=%s", len(history), session_id, uid)
 
         # persist user turn before streaming
         self._message_repo.add(uid=uid, session_id=session_id, role="user", content=user_message)
-        logger.info("User message persisted session_id=%s uid=%s", session_id, uid)
 
         # auto-title the session from the first user message if it still has the default name
         asyncio.create_task(
@@ -396,10 +383,7 @@ class ChatService:
                 memory_context = "\n\nWhat you know about this user:\n" + "\n".join(
                     f"- {m}" for m in memories
                 )
-                logger.info(
-                    "[MEMORY] injected %d memory/memories session_id=%s uid=%s",
-                    len(memories), session_id, uid,
-                )
+                logger.debug("[MEMORY] injected %d fact(s) session_id=%s", len(memories), session_id)
 
         # build LangGraph initial state
         messages = self._to_lc_messages(history)
@@ -415,7 +399,7 @@ class ChatService:
             "memory_context": memory_context,
         }
 
-        logger.info("Starting LangGraph stream session_id=%s uid=%s", session_id, uid)
+        logger.info("Chat started session_id=%s uid=%s", session_id, uid)
         accumulated = ""
 
         try:
@@ -457,15 +441,11 @@ class ChatService:
             )
             raise ChatStreamError(str(exc)) from exc
 
-        logger.info(
-            "Stream complete: %d chars session_id=%s uid=%s",
-            len(accumulated), session_id, uid,
-        )
+        logger.info("Chat complete: %d chars session_id=%s uid=%s", len(accumulated), session_id, uid)
 
         # persist assembled assistant reply
         if accumulated:
             self._message_repo.add(uid=uid, session_id=session_id, role="assistant", content=accumulated)
-            logger.info("Assistant message persisted session_id=%s uid=%s", session_id, uid)
 
         await on_done(accumulated)
 

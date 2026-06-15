@@ -97,7 +97,7 @@ class MemoryService:
             return
 
         if not facts:
-            logger.info("[MEMORY] no facts extracted for uid=%s", user_id)
+            logger.debug("[MEMORY] no facts extracted uid=%s", user_id)
             return
 
         collection = cls._get_collection(user_id)
@@ -162,7 +162,7 @@ class MemoryService:
             )
             documents: list[str] = results.get("documents", [[]])[0]
             logger.info(
-                "[MEMORY] retrieved %d relevant memory/memories for uid=%s",
+                "[MEMORY] retrieved %d relevant fact(s) uid=%s",
                 len(documents), user_id,
             )
             return documents

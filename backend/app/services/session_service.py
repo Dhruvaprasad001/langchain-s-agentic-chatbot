@@ -17,58 +17,35 @@ class SessionService:
         self._messages = message_repo
 
     def create_session(self, uid: str, title: str) -> Session:
-        logger.info("Creating session uid=%s title=%r", uid, title)
-        session = self._sessions.create(uid=uid, title=title)
-        logger.info("Session created session_id=%s uid=%s", session.session_id, uid)
-        return session
+        return self._sessions.create(uid=uid, title=title)
 
     def list_sessions_paginated(self, uid: str, page: int, limit: int) -> tuple[list[Session], int]:
-        logger.info("Listing sessions (paginated) uid=%s page=%d limit=%d", uid, page, limit)
-        sessions, total = self._sessions.list_paginated(uid=uid, page=page, limit=limit)
-        logger.info("Returning %d/%d session(s) uid=%s", len(sessions), total, uid)
-        return sessions, total
+        return self._sessions.list_paginated(uid=uid, page=page, limit=limit)
 
     def get_session_with_messages(self, uid: str, session_id: str) -> tuple[Session, list[Message]]:
-        logger.info("Fetching session_id=%s uid=%s", session_id, uid)
         session = self._sessions.get(uid=uid, session_id=session_id)
         messages = self._messages.list_asc(uid=uid, session_id=session_id)
-        logger.info(
-            "Returning session session_id=%s with %d message(s) uid=%s",
-            session_id, len(messages), uid,
-        )
         return session, messages
 
     def get_session_with_messages_paginated(
         self, uid: str, session_id: str, page: int, limit: int
     ) -> tuple[Session, list[Message], int]:
-        logger.info(
-            "Fetching session_id=%s (paginated) uid=%s page=%d limit=%d",
-            session_id, uid, page, limit,
-        )
         session = self._sessions.get(uid=uid, session_id=session_id)
         messages, total = self._messages.list_paginated(
             uid=uid, session_id=session_id, page=page, limit=limit
         )
-        logger.info(
-            "Returning session session_id=%s with %d/%d message(s) uid=%s",
-            session_id, len(messages), total, uid,
-        )
         return session, messages, total
 
     def update_session_title(self, uid: str, session_id: str, title: str) -> None:
-        logger.info("Updating title session_id=%s uid=%s title=%r", session_id, uid, title)
         # confirm ownership before mutating
         self._sessions.get(uid=uid, session_id=session_id)
-        # persist the new title
         self._sessions.update_title(uid=uid, session_id=session_id, title=title)
-        logger.info("Title updated session_id=%s uid=%s", session_id, uid)
+        logger.info("Title updated session_id=%s uid=%s title=%r", session_id, uid, title)
 
     def delete_session(self, uid: str, session_id: str) -> None:
-        logger.info("Deleting session_id=%s uid=%s", session_id, uid)
         # confirm ownership before any destructive operation
         self._sessions.get(uid=uid, session_id=session_id)
         # remove all messages in the subcollection first (Firestore doesn't cascade)
         self._messages.delete_all(uid=uid, session_id=session_id)
-        # remove the session document itself
         self._sessions.delete(uid=uid, session_id=session_id)
         logger.info("Session deleted session_id=%s uid=%s", session_id, uid)
