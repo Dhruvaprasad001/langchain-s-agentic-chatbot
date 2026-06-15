@@ -46,6 +46,16 @@ export async function createSession(token: string, title: string): Promise<Sessi
   return toSession(await res.json());
 }
 
+export async function updateSession(token: string, sessionId: string, title: string): Promise<Session> {
+  const res = await fetch(`${BACKEND_URL}/api/v1/sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) throw new Error(`updateSession failed: ${res.statusText}`);
+  return toSession(await res.json());
+}
+
 export async function deleteSession(token: string, sessionId: string): Promise<void> {
   const res = await fetch(`${BACKEND_URL}/api/v1/sessions/${sessionId}`, {
     method: "DELETE",

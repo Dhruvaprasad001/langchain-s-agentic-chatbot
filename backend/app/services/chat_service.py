@@ -343,6 +343,31 @@ class ChatService:
 
     # ── Public interface ──────────────────────────────────────────────────────
 
+    # ── Public interface ──────────────────────────────────────────────────────
+
+    async def _maybe_set_title_from_first_message(
+        self, uid: str, session_id: str, user_message: str
+    ) -> None:
+        """Fire-and-forget: set a meaningful title the first time a user sends a message."""
+        try:
+            session = self._session_repo.get(uid=uid, session_id=session_id)
+            if session.title != "New conversation":
+                return
+            title = self._derive_title(user_message)
+            self._session_repo.update_title(uid=uid, session_id=session_id, title=title)
+            logger.info("Auto-titled session_id=%s uid=%s title=%r", session_id, uid, title)
+        except Exception as exc:
+            logger.warning("Auto-title failed session_id=%s uid=%s: %s", session_id, uid, exc)
+
+    @staticmethod
+    def _derive_title(text: str, max_chars: int = 50) -> str:
+        """Truncate text to max_chars at a word boundary and append ellipsis if needed."""
+        text = text.strip()
+        if len(text) <= max_chars:
+            return text
+        truncated = text[:max_chars].rsplit(" ", 1)[0]
+        return truncated + "…"
+
     async def stream_chat(
         self,
         uid: str,
@@ -383,6 +408,11 @@ class ChatService:
         # persist user turn before streaming
         self._message_repo.add(uid=uid, session_id=session_id, role="user", content=user_message)
         logger.info("User message persisted session_id=%s uid=%s", session_id, uid)
+
+        # auto-title the session from the first user message if it still has the default name
+        asyncio.create_task(
+            self._maybe_set_title_from_first_message(uid, session_id, user_message)
+        )
 
         # retrieve relevant memories and build context string
         memory_context = ""

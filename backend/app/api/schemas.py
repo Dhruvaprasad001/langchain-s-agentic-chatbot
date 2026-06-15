@@ -12,6 +12,10 @@ class SessionCreateRequest(BaseModel):
     title: str
 
 
+class SessionUpdateRequest(BaseModel):
+    title: str
+
+
 class ChatRequest(BaseModel):
     message: str
 

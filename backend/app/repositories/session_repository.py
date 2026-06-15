@@ -73,6 +73,14 @@ class SessionRepository:
             logger.error("Firestore error deleting session_id=%s uid=%s: %s", session_id, uid, exc)
             raise RepositoryError(f"Failed to delete session: {exc}") from exc
 
+    def update_title(self, uid: str, session_id: str, title: str) -> None:
+        try:
+            self._doc(uid, session_id).update({"title": title})
+            logger.info("Updated title for session_id=%s uid=%s title=%r", session_id, uid, title)
+        except GoogleAPICallError as exc:
+            logger.error("Firestore error updating title session_id=%s uid=%s: %s", session_id, uid, exc)
+            raise RepositoryError(f"Failed to update session title: {exc}") from exc
+
     def touch_updated_at(self, uid: str, session_id: str, timestamp: datetime) -> None:
         try:
             self._doc(uid, session_id).update({"updated_at": timestamp})

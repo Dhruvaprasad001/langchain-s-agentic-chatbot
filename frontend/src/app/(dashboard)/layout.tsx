@@ -11,11 +11,13 @@ import { UnauthenticatedError } from "@/src/services/authService";
 interface SidebarContextValue {
   open: boolean;
   toggle: () => void;
+  refreshSessions: () => Promise<void>;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
   open: true,
   toggle: () => {},
+  refreshSessions: async () => {},
 });
 
 export function useSidebar() {
@@ -27,7 +29,7 @@ export function useSidebar() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
-  const { sessions, loading, createSession, deleteSession } = useSessions();
+  const { sessions, loading, createSession, deleteSession, refresh } = useSessions();
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
 
@@ -56,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <SidebarContext.Provider value={{ open, toggle }}>
+    <SidebarContext.Provider value={{ open, toggle, refreshSessions: refresh }}>
       <div className="flex h-screen overflow-hidden bg-white">
         <SessionSidebar
           sessions={sessions}

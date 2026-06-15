@@ -40,6 +40,14 @@ class SessionService:
         )
         return session, messages
 
+    def update_session_title(self, uid: str, session_id: str, title: str) -> None:
+        logger.info("Updating title session_id=%s uid=%s title=%r", session_id, uid, title)
+        # confirm ownership before mutating
+        self._sessions.get(uid=uid, session_id=session_id)
+        # persist the new title
+        self._sessions.update_title(uid=uid, session_id=session_id, title=title)
+        logger.info("Title updated session_id=%s uid=%s", session_id, uid)
+
     def delete_session(self, uid: str, session_id: str) -> None:
         logger.info("Deleting session_id=%s uid=%s", session_id, uid)
         # confirm ownership before any destructive operation
