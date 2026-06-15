@@ -11,9 +11,18 @@ export interface Session {
   updatedAt: string;
 }
 
+export interface ThinkingStep {
+  label: string;
+  status: "start" | "done";
+}
+
 export interface Message {
   messageId: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  /** Plan steps emitted by the planner node (analytical path only). */
+  planSteps?: string[];
+  /** Live executor progress shown inside a thinking block. */
+  thinkingSteps?: ThinkingStep[];
 }

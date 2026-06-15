@@ -7,6 +7,7 @@ from app.api.schemas import (
     SessionCreateRequest,
     SessionDetailResponse,
     SessionResponse,
+    SessionUpdateRequest,
 )
 from app.auth import get_current_user
 from app.dependencies import get_session_service
@@ -80,6 +81,31 @@ async def get_session(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Storage unavailable") from exc
     except Exception as exc:
         logger.error("GET /sessions/%s unexpected error uid=%s: %s", session_id, uid, exc, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error") from exc
+
+
+@router.patch("/{session_id}", response_model=SessionResponse)
+async def update_session(
+    session_id: str,
+    body: SessionUpdateRequest,
+    current_user: dict = Depends(get_current_user),
+    svc: SessionService = Depends(get_session_service),
+):
+    uid = current_user["uid"]
+    logger.info("PATCH /sessions/%s uid=%s title=%r", session_id, uid, body.title)
+    try:
+        svc.update_session_title(uid=uid, session_id=session_id, title=body.title)
+        session, _ = svc.get_session_with_messages(uid=uid, session_id=session_id)
+        logger.info("PATCH /sessions/%s → 200 uid=%s", session_id, uid)
+        return SessionResponse.from_domain(session)
+    except SessionNotFoundError as exc:
+        logger.warning("PATCH /sessions/%s → 404 uid=%s", session_id, uid)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc
+    except RepositoryError as exc:
+        logger.error("PATCH /sessions/%s storage error uid=%s: %s", session_id, uid, exc)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Storage unavailable") from exc
+    except Exception as exc:
+        logger.error("PATCH /sessions/%s unexpected error uid=%s: %s", session_id, uid, exc, exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error") from exc
 
 

@@ -7,9 +7,10 @@ from fastapi.responses import StreamingResponse
 
 from app.api.schemas import ChatRequest
 from app.auth import get_current_user
-from app.dependencies import get_chat_service
+from app.dependencies import get_chat_service, get_memory_service
 from app.exceptions import ChatStreamError, SessionNotFoundError
 from app.services.chat_service import ChatService
+from app.services.memory_service import MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ async def chat(
     body: ChatRequest,
     current_user: dict = Depends(get_current_user),
     svc: ChatService = Depends(get_chat_service),
+    memory_svc: MemoryService = Depends(get_memory_service),
 ):
     uid = current_user["uid"]
     logger.info("POST /chat/%s uid=%s", session_id, uid)
@@ -33,6 +35,9 @@ async def chat(
 
     async def on_plan_step(step: str) -> None:
         await queue.put(json.dumps({"type": "plan_step", "content": step}))
+
+    async def on_thinking(step_label: str, status: str) -> None:
+        await queue.put(json.dumps({"type": "thinking", "content": step_label, "status": status}))
 
     async def on_done(_full_response: str) -> None:
         await queue.put(None)
@@ -46,6 +51,8 @@ async def chat(
                 on_chunk=on_chunk,
                 on_done=on_done,
                 on_plan_step=on_plan_step,
+                on_thinking=on_thinking,
+                memory_service=memory_svc,
             )
         )
 

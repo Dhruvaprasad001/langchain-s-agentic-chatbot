@@ -1,15 +1,24 @@
+/**
+ * Session service — thin wrappers over the generated SessionsApi client.
+ *
+ * Public signatures are identical to the old fetch-based version so no
+ * call-sites outside this file need to change.
+ *
+ * The generated client handles auth (Bearer token) via apiClient.ts.
+ * Token is no longer accepted as a parameter — the client fetches it
+ * automatically from Firebase via getIdToken() on every request.
+ */
+
 import type { Message, Session } from "@/src/types";
+import type {
+  SessionResponse,
+  MessageResponse,
+} from "../../clients/api";
+import { getSessionsApi } from "@/src/services/apiClient";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
+// ── Shape mappers ────────────────────────────────────────────────────────────
 
-function authHeaders(token: string): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-function toSession(raw: Record<string, string>): Session {
+function toSession(raw: SessionResponse): Session {
   return {
     sessionId: raw.session_id,
     title: raw.title,
@@ -18,53 +27,52 @@ function toSession(raw: Record<string, string>): Session {
   };
 }
 
-function toMessage(raw: Record<string, string>): Message {
+function toMessage(raw: MessageResponse): Message {
   return {
     messageId: raw.message_id,
-    role: raw.role as "user" | "assistant",
+    role: raw.role,
     content: raw.content,
     timestamp: raw.timestamp,
   };
 }
 
-export async function listSessions(token: string): Promise<Session[]> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/sessions`, {
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw new Error(`listSessions failed: ${res.statusText}`);
-  const data: Record<string, string>[] = await res.json();
-  return data.map(toSession);
+// ── Public API ───────────────────────────────────────────────────────────────
+
+export async function listSessions(_token?: string): Promise<Session[]> {
+  const res = await getSessionsApi().listSessionsApiV1SessionsGet();
+  return res.data.map(toSession);
 }
 
-export async function createSession(token: string, title: string): Promise<Session> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/sessions`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify({ title }),
+export async function createSession(_token: string | undefined, title: string): Promise<Session> {
+  const res = await getSessionsApi().createSessionApiV1SessionsPost({
+    sessionCreateRequest: { title },
   });
-  if (!res.ok) throw new Error(`createSession failed: ${res.statusText}`);
-  return toSession(await res.json());
+  return toSession(res.data);
 }
 
-export async function deleteSession(token: string, sessionId: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/sessions/${sessionId}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
+export async function updateSession(
+  _token: string | undefined,
+  sessionId: string,
+  title: string,
+): Promise<Session> {
+  const res = await getSessionsApi().updateSessionApiV1SessionsSessionIdPatch({
+    sessionId,
+    sessionUpdateRequest: { title },
   });
-  if (!res.ok) throw new Error(`deleteSession failed: ${res.statusText}`);
+  return toSession(res.data);
+}
+
+export async function deleteSession(_token: string | undefined, sessionId: string): Promise<void> {
+  await getSessionsApi().deleteSessionApiV1SessionsSessionIdDelete({ sessionId });
 }
 
 export async function getSession(
-  token: string,
+  _token: string | undefined,
   sessionId: string,
 ): Promise<{ session: Session; messages: Message[] }> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/sessions/${sessionId}`, {
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw new Error(`getSession failed: ${res.statusText}`);
-  const data = await res.json();
+  const res = await getSessionsApi().getSessionApiV1SessionsSessionIdGet({ sessionId });
   return {
-    session: toSession(data.session),
-    messages: (data.messages as Record<string, string>[]).map(toMessage),
+    session: toSession(res.data.session),
+    messages: res.data.messages.map(toMessage),
   };
 }

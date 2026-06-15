@@ -17,20 +17,22 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-white">
         <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[var(--background)]">
-      <div className="flex flex-col items-center gap-6 rounded-2xl border border-neutral-200 bg-white p-10 shadow-md dark:border-neutral-700 dark:bg-neutral-900">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in to Chatbot</h1>
-        <p className="text-sm text-neutral-500">Use your Google account to continue</p>
+    <div className="flex h-screen items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-6 rounded-2xl border border-zinc-200 bg-white p-10 shadow-md">
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Xenon AI</h1>
+          <p className="text-sm text-zinc-400">Use your Google account to continue</p>
+        </div>
         <button
           onClick={signIn}
-          className="flex items-center gap-3 rounded-lg border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+          className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             <path
