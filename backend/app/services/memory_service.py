@@ -5,12 +5,14 @@ from datetime import datetime, timezone
 from typing import ClassVar
 
 import chromadb
-from firebase_admin import firestore
 from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import settings
+from app.repositories.memory_repository import MemoryRepository
 
 logger = logging.getLogger(__name__)
+
+_memory_repo = MemoryRepository()
 
 
 class MemoryService:
@@ -18,7 +20,7 @@ class MemoryService:
     Per-user vector memory backed by a persistent Chroma collection.
 
     Each user gets their own Chroma collection namespaced by uid.
-    Memories are also written to Firestore for durability and auditability.
+    Memories are also written to Firestore (via MemoryRepository) for durability.
 
     All public methods swallow exceptions — memory failures must never break chat.
     """
@@ -38,19 +40,29 @@ class MemoryService:
 
     @classmethod
     def _collection_name(cls, user_id: str) -> str:
-        # Chroma collection names must be 3-63 chars, alphanumeric + hyphens/underscores.
-        # Truncate uid to keep the name within limits.
         safe_uid = user_id.replace(".", "_").replace("@", "_")[:40]
         return f"{settings.memory_collection_prefix}_{safe_uid}"
 
     @classmethod
-    def _get_collection(cls, user_id: str) -> chromadb.Collection:
+    def _get_chroma_collection(cls, user_id: str) -> chromadb.Collection:
         return cls._chroma_client.get_or_create_collection(
             name=cls._collection_name(user_id),
             metadata={"hnsw:space": "cosine"},
         )
 
     # ── Public interface ──────────────────────────────────────────────────────
+
+    @classmethod
+    async def list_all(cls, user_id: str) -> list[dict]:
+        """
+        Return all stored memory facts for a user, newest first.
+        Never raises — returns empty list on any error.
+        """
+        try:
+            return _memory_repo.list_all(user_id)
+        except Exception as exc:
+            logger.warning("[MEMORY] list_all failed for uid=%s: %s", user_id, exc)
+            return []
 
     @classmethod
     async def extract_and_store(
@@ -77,14 +89,19 @@ class MemoryService:
 
             result = cls._extraction_llm.invoke([
                 {"role": "system", "content": (
-                    "You extract memorable facts from conversations. "
+                    "You extract memorable facts about the user from what THEY said. "
                     "Return ONLY a valid JSON array of strings — each string is one fact worth remembering. "
-                    "Focus on: user preferences, their projects, their stack, their goals, workflows they mention. "
-                    "If nothing is worth remembering return an empty array []. "
-                    "Max 3 facts per conversation turn."
+                    "Rules:\n"
+                    "- Only extract facts the USER explicitly stated about themselves.\n"
+                    "- NEVER extract anything from the assistant's reply.\n"
+                    "- NEVER infer or assume facts the user did not directly express.\n"
+                    "- Focus on: their preferences, projects, tech stack, goals, and workflows.\n"
+                    "- If the user's message contains nothing personal or memorable, return [].\n"
+                    "- Max 3 facts per turn."
                 )},
                 {"role": "user", "content": (
-                    f"User said: {user_message}\nAssistant said: {assistant_response}"
+                    f"User said: {user_message}\n\n"
+                    f"[Assistant reply — for context only, do NOT extract facts from this]\n{assistant_response}"
                 )},
             ])
 
@@ -97,35 +114,30 @@ class MemoryService:
             return
 
         if not facts:
-            logger.info("[MEMORY] no facts extracted for uid=%s", user_id)
+            logger.debug("[MEMORY] no facts extracted uid=%s", user_id)
             return
 
-        collection = cls._get_collection(user_id)
-        db = firestore.client()
-        now = datetime.now(timezone.utc)
+        chroma_col = cls._get_chroma_collection(user_id)
+        now = datetime.now(timezone.utc).isoformat()
 
         for fact in facts:
             try:
                 embedding = await cls._embeddings.aembed_query(fact)
                 memory_id = str(uuid.uuid4())
-                metadata = {
-                    "user_id": user_id,
-                    "timestamp": now.isoformat(),
-                    "source": "conversation",
-                }
 
-                # store in Chroma
-                collection.add(
+                chroma_col.add(
                     ids=[memory_id],
                     embeddings=[embedding],
                     documents=[fact],
-                    metadatas=[metadata],
+                    metadatas={"user_id": user_id, "timestamp": now, "source": "conversation"},
                 )
 
-                # mirror to Firestore for durability
-                db.collection("users").document(user_id).collection("memory").document(
-                    memory_id
-                ).set({"content": fact, **metadata})
+                _memory_repo.save(
+                    user_id=user_id,
+                    memory_id=memory_id,
+                    content=fact,
+                    timestamp=now,
+                )
 
             except Exception as exc:
                 logger.warning(
@@ -133,7 +145,7 @@ class MemoryService:
                     user_id, exc, fact,
                 )
 
-        logger.info("[MEMORY] stored %d fact(s) for uid=%s", len(facts), user_id)
+        logger.info("SKILL: [memory_store] stored %d fact(s) uid=%s", len(facts), user_id)
 
     @classmethod
     async def retrieve_relevant(
@@ -150,7 +162,7 @@ class MemoryService:
         """
         k = k if k is not None else settings.max_memories_injected
         try:
-            collection = cls._get_collection(user_id)
+            collection = cls._get_chroma_collection(user_id)
             count = collection.count()
             if count == 0:
                 return []
@@ -162,7 +174,7 @@ class MemoryService:
             )
             documents: list[str] = results.get("documents", [[]])[0]
             logger.info(
-                "[MEMORY] retrieved %d relevant memory/memories for uid=%s",
+                "SKILL: [memory_retrieve] retrieved %d fact(s) uid=%s",
                 len(documents), user_id,
             )
             return documents

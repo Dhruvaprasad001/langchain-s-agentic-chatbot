@@ -27,10 +27,8 @@ async def create_session(
     svc: SessionService = Depends(get_session_service),
 ):
     uid = current_user["uid"]
-    logger.info("POST /sessions uid=%s title=%r", uid, body.title)
     try:
         session = svc.create_session(uid=uid, title=body.title)
-        logger.info("POST /sessions → 201 session_id=%s uid=%s", session.session_id, uid)
         return SessionResponse.from_domain(session)
     except RepositoryError as exc:
         logger.error("POST /sessions storage error uid=%s: %s", uid, exc)
@@ -48,10 +46,8 @@ async def list_sessions(
     svc: SessionService = Depends(get_session_service),
 ):
     uid = current_user["uid"]
-    logger.info("GET /sessions uid=%s page=%d limit=%d", uid, page, limit)
     try:
         sessions, total = svc.list_sessions_paginated(uid=uid, page=page, limit=limit)
-        logger.info("GET /sessions → 200 count=%d total=%d uid=%s", len(sessions), total, uid)
         return PaginatedSessionsResponse(
             total=total,
             page=page,
@@ -75,14 +71,9 @@ async def get_session(
     svc: SessionService = Depends(get_session_service),
 ):
     uid = current_user["uid"]
-    logger.info("GET /sessions/%s uid=%s page=%d limit=%d", session_id, uid, page, limit)
     try:
         session, messages, total = svc.get_session_with_messages_paginated(
             uid=uid, session_id=session_id, page=page, limit=limit
-        )
-        logger.info(
-            "GET /sessions/%s → 200 messages=%d total=%d uid=%s",
-            session_id, len(messages), total, uid,
         )
         return PaginatedMessagesResponse(
             total=total,
@@ -109,11 +100,9 @@ async def update_session(
     svc: SessionService = Depends(get_session_service),
 ):
     uid = current_user["uid"]
-    logger.info("PATCH /sessions/%s uid=%s title=%r", session_id, uid, body.title)
     try:
         svc.update_session_title(uid=uid, session_id=session_id, title=body.title)
         session, _ = svc.get_session_with_messages(uid=uid, session_id=session_id)
-        logger.info("PATCH /sessions/%s → 200 uid=%s", session_id, uid)
         return SessionResponse.from_domain(session)
     except SessionNotFoundError as exc:
         logger.warning("PATCH /sessions/%s → 404 uid=%s", session_id, uid)
@@ -133,10 +122,8 @@ async def delete_session(
     svc: SessionService = Depends(get_session_service),
 ):
     uid = current_user["uid"]
-    logger.info("DELETE /sessions/%s uid=%s", session_id, uid)
     try:
         svc.delete_session(uid=uid, session_id=session_id)
-        logger.info("DELETE /sessions/%s → 204 uid=%s", session_id, uid)
     except SessionNotFoundError as exc:
         logger.warning("DELETE /sessions/%s → 404 uid=%s", session_id, uid)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc

@@ -26,7 +26,7 @@ class SessionRepository:
         try:
             ref = self._col(uid).document()
             ref.set(data)
-            logger.info("Created session session_id=%s uid=%s title=%r", ref.id, uid, title)
+            logger.debug("Created session session_id=%s uid=%s", ref.id, uid)
             return Session(session_id=ref.id, **data)
         except GoogleAPICallError as exc:
             logger.error("Firestore error creating session uid=%s: %s", uid, exc)
@@ -40,7 +40,7 @@ class SessionRepository:
                 .stream()
             )
             sessions = [self._to_domain(doc) for doc in docs]
-            logger.info("Listed %d session(s) for uid=%s", len(sessions), uid)
+            logger.debug("Listed %d session(s) uid=%s", len(sessions), uid)
             return sessions
         except GoogleAPICallError as exc:
             logger.error("Firestore error listing sessions uid=%s: %s", uid, exc)
@@ -57,10 +57,7 @@ class SessionRepository:
             offset = (page - 1) * limit
             page_docs = all_docs[offset: offset + limit]
             sessions = [self._to_domain(doc) for doc in page_docs]
-            logger.info(
-                "Listed %d/%d session(s) page=%d limit=%d uid=%s",
-                len(sessions), total, page, limit, uid,
-            )
+            logger.debug("Listed %d/%d sessions page=%d uid=%s", len(sessions), total, page, uid)
             return sessions, total
         except GoogleAPICallError as exc:
             logger.error("Firestore error listing sessions uid=%s: %s", uid, exc)
@@ -82,13 +79,13 @@ class SessionRepository:
             logger.warning("Session ownership mismatch session_id=%s uid=%s", session_id, uid)
             raise SessionNotFoundError(f"Session {session_id} not found")
 
-        logger.info("Fetched session session_id=%s uid=%s", session_id, uid)
+        logger.debug("Fetched session session_id=%s uid=%s", session_id, uid)
         return self._to_domain(doc)
 
     def delete(self, uid: str, session_id: str) -> None:
         try:
             self._doc(uid, session_id).delete()
-            logger.info("Deleted session session_id=%s uid=%s", session_id, uid)
+            logger.debug("Deleted session session_id=%s uid=%s", session_id, uid)
         except GoogleAPICallError as exc:
             logger.error("Firestore error deleting session_id=%s uid=%s: %s", session_id, uid, exc)
             raise RepositoryError(f"Failed to delete session: {exc}") from exc
@@ -96,7 +93,7 @@ class SessionRepository:
     def update_title(self, uid: str, session_id: str, title: str) -> None:
         try:
             self._doc(uid, session_id).update({"title": title})
-            logger.info("Updated title for session_id=%s uid=%s title=%r", session_id, uid, title)
+            logger.debug("Updated title session_id=%s uid=%s", session_id, uid)
         except GoogleAPICallError as exc:
             logger.error("Firestore error updating title session_id=%s uid=%s: %s", session_id, uid, exc)
             raise RepositoryError(f"Failed to update session title: {exc}") from exc

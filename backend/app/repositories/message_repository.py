@@ -30,10 +30,7 @@ class MessageRepository:
         try:
             ref = self._col(uid, session_id).document()
             ref.set(data)
-            logger.info(
-                "Persisted %s message message_id=%s session_id=%s uid=%s",
-                role, ref.id, session_id, uid,
-            )
+            logger.debug("Persisted %s message session_id=%s", role, session_id)
             return Message(message_id=ref.id, role=role, content=content, timestamp=now)
         except GoogleAPICallError as exc:
             logger.error(
@@ -50,10 +47,7 @@ class MessageRepository:
                 .stream()
             )
             messages = [self._to_domain(doc) for doc in docs]
-            logger.info(
-                "Loaded %d message(s) session_id=%s uid=%s",
-                len(messages), session_id, uid,
-            )
+            logger.debug("Loaded %d messages session_id=%s", len(messages), session_id)
             return messages
         except GoogleAPICallError as exc:
             logger.error(
@@ -73,10 +67,7 @@ class MessageRepository:
             offset = (page - 1) * limit
             page_docs = all_docs[offset: offset + limit]
             messages = [self._to_domain(doc) for doc in page_docs]
-            logger.info(
-                "Loaded %d/%d message(s) page=%d limit=%d session_id=%s uid=%s",
-                len(messages), total, page, limit, session_id, uid,
-            )
+            logger.debug("Loaded %d/%d messages page=%d session_id=%s", len(messages), total, page, session_id)
             return messages, total
         except GoogleAPICallError as exc:
             logger.error(
@@ -90,10 +81,7 @@ class MessageRepository:
             docs = list(self._col(uid, session_id).stream())
             for doc in docs:
                 doc.reference.delete()
-            logger.info(
-                "Deleted %d message(s) session_id=%s uid=%s",
-                len(docs), session_id, uid,
-            )
+            logger.debug("Deleted %d messages session_id=%s", len(docs), session_id)
         except GoogleAPICallError as exc:
             logger.error(
                 "Firestore error deleting messages session_id=%s uid=%s: %s",

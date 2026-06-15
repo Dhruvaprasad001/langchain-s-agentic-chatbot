@@ -26,7 +26,6 @@ async def chat(
     memory_svc: MemoryService = Depends(get_memory_service),
 ):
     uid = current_user["uid"]
-    logger.info("POST /chat/%s uid=%s", session_id, uid)
 
     queue: asyncio.Queue[str | None] = asyncio.Queue()
 
@@ -55,8 +54,6 @@ async def chat(
                 memory_service=memory_svc,
             )
         )
-
-        logger.info("SSE stream started session_id=%s uid=%s", session_id, uid)
 
         try:
             while True:
@@ -99,6 +96,5 @@ async def chat(
                     yield f"data: {json.dumps({'error': 'Internal server error'})}\n\n"
 
         yield "data: [DONE]\n\n"
-        logger.info("SSE stream completed session_id=%s uid=%s", session_id, uid)
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
