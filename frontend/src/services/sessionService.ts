@@ -36,11 +36,36 @@ function toMessage(raw: MessageResponse): Message {
   };
 }
 
+// ── Paginated result shapes ──────────────────────────────────────────────────
+
+export interface PaginatedSessions {
+  items: Session[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedMessages {
+  messages: Message[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
-export async function listSessions(_token?: string): Promise<Session[]> {
-  const res = await getSessionsApi().listSessionsApiV1SessionsGet();
-  return res.data.map(toSession);
+export async function listSessions(
+  _token?: string,
+  page = 1,
+  limit = 20,
+): Promise<PaginatedSessions> {
+  const res = await getSessionsApi().listSessionsApiV1SessionsGet({ page, limit });
+  return {
+    items: res.data.items.map(toSession),
+    total: res.data.total,
+    page: res.data.page,
+    limit: res.data.limit,
+  };
 }
 
 export async function createSession(_token: string | undefined, title: string): Promise<Session> {
@@ -69,10 +94,25 @@ export async function deleteSession(_token: string | undefined, sessionId: strin
 export async function getSession(
   _token: string | undefined,
   sessionId: string,
-): Promise<{ session: Session; messages: Message[] }> {
-  const res = await getSessionsApi().getSessionApiV1SessionsSessionIdGet({ sessionId });
+  page = 1,
+  limit = 50,
+): Promise<PaginatedMessages> {
+  const res = await getSessionsApi().getSessionApiV1SessionsSessionIdGet({
+    sessionId,
+    page,
+    limit,
+  });
   return {
-    session: toSession(res.data.session),
-    messages: res.data.messages.map(toMessage),
+    messages: res.data.items.map(toMessage),
+    total: res.data.total,
+    page: res.data.page,
+    limit: res.data.limit,
   };
+}
+
+/** Fetch the title of a single session by finding it in the full list. */
+export async function getSessionTitle(sessionId: string): Promise<string | undefined> {
+  const res = await getSessionsApi().listSessionsApiV1SessionsGet({ page: 1, limit: 100 });
+  const match = res.data.items.find((s) => s.session_id === sessionId);
+  return match?.title;
 }

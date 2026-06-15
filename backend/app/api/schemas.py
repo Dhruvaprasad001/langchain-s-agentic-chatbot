@@ -57,3 +57,17 @@ class MessageResponse(BaseModel):
 class SessionDetailResponse(BaseModel):
     session: SessionResponse
     messages: list[MessageResponse]
+
+
+class PaginatedSessionsResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    items: list[SessionResponse]
+
+
+class PaginatedMessagesResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    items: list[MessageResponse]

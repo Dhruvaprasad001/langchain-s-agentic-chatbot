@@ -45,12 +45,20 @@ export const MessageResponseRoleEnum = {
 
 export type MessageResponseRoleEnum = typeof MessageResponseRoleEnum[keyof typeof MessageResponseRoleEnum];
 
+export interface PaginatedMessagesResponse {
+    'total': number;
+    'page': number;
+    'limit': number;
+    'items': Array<MessageResponse>;
+}
+export interface PaginatedSessionsResponse {
+    'total': number;
+    'page': number;
+    'limit': number;
+    'items': Array<SessionResponse>;
+}
 export interface SessionCreateRequest {
     'title': string;
-}
-export interface SessionDetailResponse {
-    'session': SessionResponse;
-    'messages': Array<MessageResponse>;
 }
 export interface SessionResponse {
     'session_id': string;
@@ -369,10 +377,12 @@ export const SessionsApiAxiosParamCreator = function (configuration?: Configurat
          * 
          * @summary Get Session
          * @param {string} sessionId 
+         * @param {number} [page] Page number (1-based)
+         * @param {number} [limit] Messages per page
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSessionApiV1SessionsSessionIdGet: async (sessionId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        getSessionApiV1SessionsSessionIdGet: async (sessionId: string, page?: number, limit?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'sessionId' is not null or undefined
             assertParamExists('getSessionApiV1SessionsSessionIdGet', 'sessionId', sessionId)
             const localVarPath = `/api/v1/sessions/{session_id}`
@@ -392,6 +402,14 @@ export const SessionsApiAxiosParamCreator = function (configuration?: Configurat
             // http bearer authentication required
             await setBearerAuthToObject(localVarHeaderParameter, configuration)
 
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
             localVarHeaderParameter['Accept'] = 'application/json';
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
@@ -406,10 +424,12 @@ export const SessionsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * 
          * @summary List Sessions
+         * @param {number} [page] Page number (1-based)
+         * @param {number} [limit] Items per page
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listSessionsApiV1SessionsGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listSessionsApiV1SessionsGet: async (page?: number, limit?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v1/sessions`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -425,6 +445,14 @@ export const SessionsApiAxiosParamCreator = function (configuration?: Configurat
             // authentication HTTPBearer required
             // http bearer authentication required
             await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
 
             localVarHeaderParameter['Accept'] = 'application/json';
 
@@ -519,11 +547,13 @@ export const SessionsApiFp = function(configuration?: Configuration) {
          * 
          * @summary Get Session
          * @param {string} sessionId 
+         * @param {number} [page] Page number (1-based)
+         * @param {number} [limit] Messages per page
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async getSessionApiV1SessionsSessionIdGet(sessionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SessionDetailResponse>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.getSessionApiV1SessionsSessionIdGet(sessionId, options);
+        async getSessionApiV1SessionsSessionIdGet(sessionId: string, page?: number, limit?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedMessagesResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSessionApiV1SessionsSessionIdGet(sessionId, page, limit, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SessionsApi.getSessionApiV1SessionsSessionIdGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -531,11 +561,13 @@ export const SessionsApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary List Sessions
+         * @param {number} [page] Page number (1-based)
+         * @param {number} [limit] Items per page
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async listSessionsApiV1SessionsGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<SessionResponse>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.listSessionsApiV1SessionsGet(options);
+        async listSessionsApiV1SessionsGet(page?: number, limit?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedSessionsResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listSessionsApiV1SessionsGet(page, limit, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SessionsApi.listSessionsApiV1SessionsGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -590,17 +622,18 @@ export const SessionsApiFactory = function (configuration?: Configuration, baseP
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        getSessionApiV1SessionsSessionIdGet(requestParameters: SessionsApiGetSessionApiV1SessionsSessionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<SessionDetailResponse> {
-            return localVarFp.getSessionApiV1SessionsSessionIdGet(requestParameters.sessionId, options).then((request) => request(axios, basePath));
+        getSessionApiV1SessionsSessionIdGet(requestParameters: SessionsApiGetSessionApiV1SessionsSessionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMessagesResponse> {
+            return localVarFp.getSessionApiV1SessionsSessionIdGet(requestParameters.sessionId, requestParameters.page, requestParameters.limit, options).then((request) => request(axios, basePath));
         },
         /**
          * 
          * @summary List Sessions
+         * @param {SessionsApiListSessionsApiV1SessionsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listSessionsApiV1SessionsGet(options?: RawAxiosRequestConfig): AxiosPromise<Array<SessionResponse>> {
-            return localVarFp.listSessionsApiV1SessionsGet(options).then((request) => request(axios, basePath));
+        listSessionsApiV1SessionsGet(requestParameters: SessionsApiListSessionsApiV1SessionsGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedSessionsResponse> {
+            return localVarFp.listSessionsApiV1SessionsGet(requestParameters.page, requestParameters.limit, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -634,6 +667,31 @@ export interface SessionsApiDeleteSessionApiV1SessionsSessionIdDeleteRequest {
  */
 export interface SessionsApiGetSessionApiV1SessionsSessionIdGetRequest {
     readonly sessionId: string
+
+    /**
+     * Page number (1-based)
+     */
+    readonly page?: number
+
+    /**
+     * Messages per page
+     */
+    readonly limit?: number
+}
+
+/**
+ * Request parameters for listSessionsApiV1SessionsGet operation in SessionsApi.
+ */
+export interface SessionsApiListSessionsApiV1SessionsGetRequest {
+    /**
+     * Page number (1-based)
+     */
+    readonly page?: number
+
+    /**
+     * Items per page
+     */
+    readonly limit?: number
 }
 
 /**
@@ -679,17 +737,18 @@ export class SessionsApi extends BaseAPI {
      * @throws {RequiredError}
      */
     public getSessionApiV1SessionsSessionIdGet(requestParameters: SessionsApiGetSessionApiV1SessionsSessionIdGetRequest, options?: RawAxiosRequestConfig) {
-        return SessionsApiFp(this.configuration).getSessionApiV1SessionsSessionIdGet(requestParameters.sessionId, options).then((request) => request(this.axios, this.basePath));
+        return SessionsApiFp(this.configuration).getSessionApiV1SessionsSessionIdGet(requestParameters.sessionId, requestParameters.page, requestParameters.limit, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * 
      * @summary List Sessions
+     * @param {SessionsApiListSessionsApiV1SessionsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public listSessionsApiV1SessionsGet(options?: RawAxiosRequestConfig) {
-        return SessionsApiFp(this.configuration).listSessionsApiV1SessionsGet(options).then((request) => request(this.axios, this.basePath));
+    public listSessionsApiV1SessionsGet(requestParameters: SessionsApiListSessionsApiV1SessionsGetRequest = {}, options?: RawAxiosRequestConfig) {
+        return SessionsApiFp(this.configuration).listSessionsApiV1SessionsGet(requestParameters.page, requestParameters.limit, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

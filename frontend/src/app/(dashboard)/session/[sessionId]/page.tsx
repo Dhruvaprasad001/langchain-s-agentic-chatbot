@@ -9,7 +9,7 @@ import { MessageList } from "@/src/components/chat/MessageList";
 import { ChatInput } from "@/src/components/chat/ChatInput";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { getIdToken } from "@/src/services/authService";
-import { createSession, getSession } from "@/src/services/sessionService";
+import { createSession, getSessionTitle } from "@/src/services/sessionService";
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
@@ -25,12 +25,13 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   useEffect(() => {
     isFirstMessageRef.current = true;
     getIdToken()
-      .then((token) => getSession(token, sessionId))
-      .then(({ session }) => {
-        setSessionTitle(session.title);
-        // if the session already has a real title, first message was sent before
-        if (session.title !== "New conversation") {
-          isFirstMessageRef.current = false;
+      .then(() => getSessionTitle(sessionId))
+      .then((title) => {
+        if (title !== undefined) {
+          setSessionTitle(title);
+          if (title !== "New conversation") {
+            isFirstMessageRef.current = false;
+          }
         }
       })
       .catch(() => {});
@@ -46,8 +47,8 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       // small delay to let the backend fire-and-forget title write complete
       setTimeout(() => {
         getIdToken()
-          .then((token) => getSession(token, sessionId))
-          .then(({ session }) => setSessionTitle(session.title))
+          .then(() => getSessionTitle(sessionId))
+          .then((title) => { if (title !== undefined) setSessionTitle(title); })
           .catch(() => {});
         refreshSessions();
       }, 800);

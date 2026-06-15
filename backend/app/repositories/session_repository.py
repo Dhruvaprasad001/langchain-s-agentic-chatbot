@@ -46,6 +46,26 @@ class SessionRepository:
             logger.error("Firestore error listing sessions uid=%s: %s", uid, exc)
             raise RepositoryError(f"Failed to list sessions: {exc}") from exc
 
+    def list_paginated(self, uid: str, page: int, limit: int) -> tuple[list[Session], int]:
+        try:
+            base_query = (
+                self._col(uid)
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
+            )
+            all_docs = list(base_query.stream())
+            total = len(all_docs)
+            offset = (page - 1) * limit
+            page_docs = all_docs[offset: offset + limit]
+            sessions = [self._to_domain(doc) for doc in page_docs]
+            logger.info(
+                "Listed %d/%d session(s) page=%d limit=%d uid=%s",
+                len(sessions), total, page, limit, uid,
+            )
+            return sessions, total
+        except GoogleAPICallError as exc:
+            logger.error("Firestore error listing sessions uid=%s: %s", uid, exc)
+            raise RepositoryError(f"Failed to list sessions: {exc}") from exc
+
     def get(self, uid: str, session_id: str) -> Session:
         try:
             doc = self._doc(uid, session_id).get()

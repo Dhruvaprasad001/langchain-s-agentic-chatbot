@@ -14,6 +14,11 @@ interface UseSessionsReturn {
   sessions: Session[];
   loading: boolean;
   error: string | null;
+  page: number;
+  limit: number;
+  total: number;
+  setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
   refresh: () => Promise<void>;
   createSession: (title: string) => Promise<Session>;
   deleteSession: (sessionId: string) => Promise<void>;
@@ -23,6 +28,9 @@ export function useSessions(): UseSessionsReturn {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
   const router = useRouter();
 
   const refresh = useCallback(async () => {
@@ -30,8 +38,9 @@ export function useSessions(): UseSessionsReturn {
     setError(null);
     try {
       const token = await getIdToken();
-      const data = await apiList(token);
-      setSessions(data);
+      const data = await apiList(token, page, limit);
+      setSessions(data.items);
+      setTotal(data.total);
     } catch (err) {
       if (err instanceof UnauthenticatedError) {
         router.replace("/login");
@@ -42,7 +51,7 @@ export function useSessions(): UseSessionsReturn {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
     refresh();
@@ -83,5 +92,5 @@ export function useSessions(): UseSessionsReturn {
     }
   }
 
-  return { sessions, loading, error, refresh, createSession, deleteSession };
+  return { sessions, loading, error, page, limit, total, setPage, setLimit, refresh, createSession, deleteSession };
 }
