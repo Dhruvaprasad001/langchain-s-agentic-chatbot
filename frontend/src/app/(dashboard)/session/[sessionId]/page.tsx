@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, use, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useChat } from "@/src/hooks/useChat";
 import { useSidebar } from "@/src/app/(dashboard)/layout";
 import { ChatNavbar } from "@/src/components/chat/ChatNavbar";
@@ -10,8 +10,10 @@ import { ChatInput } from "@/src/components/chat/ChatInput";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { createSession, getSessionTitle } from "@/src/services/sessionService";
 
-export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const { sessionId } = use(params);
+function SessionPageInner({ sessionId }: { sessionId: string }) {
+  const searchParams = useSearchParams();
+  const initialMessage = searchParams.get("q");
+
   const { messages, loading, sending, pendingReply, error, sendMessage } = useChat(sessionId);
   const { toggle, refreshSessions } = useSidebar();
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const [sessionTitle, setSessionTitle] = useState<string | undefined>(undefined);
   const isFirstMessageRef = useRef(true);
   const prevSendingRef = useRef(false);
+  const autoSentRef = useRef(false);
 
   // fetch title once on mount
   useEffect(() => {
@@ -34,6 +37,16 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       })
       .catch(() => {});
   }, [sessionId]);
+
+  // auto-send the suggestion message once the session has loaded
+  useEffect(() => {
+    if (!loading && initialMessage && !autoSentRef.current) {
+      autoSentRef.current = true;
+      sendMessage(initialMessage);
+      // clean the URL without triggering a Next.js navigation / remount
+      window.history.replaceState(null, "", `/session/${sessionId}`);
+    }
+  }, [loading, initialMessage, sendMessage, sessionId]);
 
   // after the first message finishes streaming, re-fetch the title and refresh the sidebar
   useEffect(() => {
@@ -73,7 +86,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
           <MessageList messages={messages} sending={sending} />
           {pendingReply && !sending && (
             <div className="mx-auto mb-2 flex w-full max-w-2xl items-center gap-2 px-4 text-xs text-zinc-600">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
               Waiting for response…
             </div>
           )}
@@ -86,5 +99,18 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
 
       <ChatInput onSend={sendMessage} disabled={sending || loading || pendingReply} />
     </div>
+  );
+}
+
+export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = use(params);
+  return (
+    <Suspense fallback={
+      <div className="flex h-full flex-1 items-center justify-center" style={{ background: "var(--chat-bg)" }}>
+        <Spinner size="md" />
+      </div>
+    }>
+      <SessionPageInner sessionId={sessionId} />
+    </Suspense>
   );
 }

@@ -21,7 +21,10 @@ export default function DashboardPage() {
   async function handleNewChat(initialMessage?: string) {
     try {
       const session = await createSession("New conversation");
-      router.push(`/session/${session.sessionId}`);
+      const url = initialMessage
+        ? `/session/${session.sessionId}?q=${encodeURIComponent(initialMessage)}`
+        : `/session/${session.sessionId}`;
+      router.push(url);
     } catch (err) {
       if (err instanceof UnauthenticatedError) {
         router.replace("/login");

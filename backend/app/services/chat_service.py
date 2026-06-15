@@ -248,11 +248,12 @@ class ChatService:
 
     @classmethod
     def _web_search_agent_node(cls, state: AgentState) -> AgentState:
-        """Strip @web-search prefix, run DuckDuckGo, synthesize with personality."""
+        """Strip @web-search prefix if present, run DuckDuckGo, synthesize with personality."""
         from langchain_community.tools import DuckDuckGoSearchRun  # lazy import
 
         raw = state["messages"][-1].content
-        query = raw.replace("@web-search", "").strip()
+        # strip the explicit prefix if the user typed it; otherwise use the message as-is
+        query = raw.replace("@web-search", "").strip() or raw.strip()
 
         logger.info("[WEB_SEARCH] query='%s' uid=%s session_id=%s", query, state["user_id"], state["session_id"])
 

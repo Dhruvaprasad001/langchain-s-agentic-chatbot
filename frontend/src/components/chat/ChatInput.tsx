@@ -74,7 +74,7 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
 
         {/* Input box */}
         <div
-          className={`relative flex items-end gap-3 rounded-2xl px-4 py-3 transition-all duration-200 ${
+          className={`relative flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 ${
             disabled
               ? "opacity-60"
               : isWebSearch
