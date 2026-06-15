@@ -26,10 +26,24 @@ import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError, operationServerM
 export interface ChatRequest {
     'message': string;
 }
+export interface CustomRulesResponse {
+    'rules': string | null;
+}
+export interface CustomRulesUpdateRequest {
+    'rules': string;
+}
 export interface HTTPValidationError {
     'detail'?: Array<ValidationError>;
 }
 export interface LocationInner {
+}
+export interface MemoryFactResponse {
+    'id': string;
+    'content': string;
+    'timestamp': string | null;
+}
+export interface MemoryResponse {
+    'facts': Array<MemoryFactResponse>;
 }
 export interface MessageResponse {
     'message_id': string;
@@ -198,6 +212,184 @@ export class ChatApi extends BaseAPI {
 
 
 /**
+ * CustomRulesApi - axios parameter creator
+ */
+export const CustomRulesApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Return the authenticated user\'s custom rules string (null if not set).
+         * @summary Get Custom Rules
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getCustomRulesApiV1CustomRulesGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/custom-rules`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication HTTPBearer required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Upsert the authenticated user\'s custom rules string.
+         * @summary Update Custom Rules
+         * @param {CustomRulesUpdateRequest} customRulesUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateCustomRulesApiV1CustomRulesPut: async (customRulesUpdateRequest: CustomRulesUpdateRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'customRulesUpdateRequest' is not null or undefined
+            assertParamExists('updateCustomRulesApiV1CustomRulesPut', 'customRulesUpdateRequest', customRulesUpdateRequest)
+            const localVarPath = `/api/v1/custom-rules`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication HTTPBearer required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(customRulesUpdateRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * CustomRulesApi - functional programming interface
+ */
+export const CustomRulesApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = CustomRulesApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Return the authenticated user\'s custom rules string (null if not set).
+         * @summary Get Custom Rules
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getCustomRulesApiV1CustomRulesGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRulesResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getCustomRulesApiV1CustomRulesGet(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CustomRulesApi.getCustomRulesApiV1CustomRulesGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Upsert the authenticated user\'s custom rules string.
+         * @summary Update Custom Rules
+         * @param {CustomRulesUpdateRequest} customRulesUpdateRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateCustomRulesApiV1CustomRulesPut(customRulesUpdateRequest: CustomRulesUpdateRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CustomRulesResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateCustomRulesApiV1CustomRulesPut(customRulesUpdateRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['CustomRulesApi.updateCustomRulesApiV1CustomRulesPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * CustomRulesApi - factory interface
+ */
+export const CustomRulesApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = CustomRulesApiFp(configuration)
+    return {
+        /**
+         * Return the authenticated user\'s custom rules string (null if not set).
+         * @summary Get Custom Rules
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getCustomRulesApiV1CustomRulesGet(options?: RawAxiosRequestConfig): AxiosPromise<CustomRulesResponse> {
+            return localVarFp.getCustomRulesApiV1CustomRulesGet(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Upsert the authenticated user\'s custom rules string.
+         * @summary Update Custom Rules
+         * @param {CustomRulesApiUpdateCustomRulesApiV1CustomRulesPutRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateCustomRulesApiV1CustomRulesPut(requestParameters: CustomRulesApiUpdateCustomRulesApiV1CustomRulesPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<CustomRulesResponse> {
+            return localVarFp.updateCustomRulesApiV1CustomRulesPut(requestParameters.customRulesUpdateRequest, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * Request parameters for updateCustomRulesApiV1CustomRulesPut operation in CustomRulesApi.
+ */
+export interface CustomRulesApiUpdateCustomRulesApiV1CustomRulesPutRequest {
+    readonly customRulesUpdateRequest: CustomRulesUpdateRequest
+}
+
+/**
+ * CustomRulesApi - object-oriented interface
+ */
+export class CustomRulesApi extends BaseAPI {
+    /**
+     * Return the authenticated user\'s custom rules string (null if not set).
+     * @summary Get Custom Rules
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getCustomRulesApiV1CustomRulesGet(options?: RawAxiosRequestConfig) {
+        return CustomRulesApiFp(this.configuration).getCustomRulesApiV1CustomRulesGet(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Upsert the authenticated user\'s custom rules string.
+     * @summary Update Custom Rules
+     * @param {CustomRulesApiUpdateCustomRulesApiV1CustomRulesPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateCustomRulesApiV1CustomRulesPut(requestParameters: CustomRulesApiUpdateCustomRulesApiV1CustomRulesPutRequest, options?: RawAxiosRequestConfig) {
+        return CustomRulesApiFp(this.configuration).updateCustomRulesApiV1CustomRulesPut(requestParameters.customRulesUpdateRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
  * DefaultApi - axios parameter creator
  */
 export const DefaultApiAxiosParamCreator = function (configuration?: Configuration) {
@@ -286,6 +478,104 @@ export class DefaultApi extends BaseAPI {
      */
     public healthHealthGet(options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).healthHealthGet(options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * MemoryApi - axios parameter creator
+ */
+export const MemoryApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Return all stored memory facts for the authenticated user.
+         * @summary Get Memory
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMemoryApiV1MemoryGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/memory`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication HTTPBearer required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * MemoryApi - functional programming interface
+ */
+export const MemoryApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = MemoryApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Return all stored memory facts for the authenticated user.
+         * @summary Get Memory
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMemoryApiV1MemoryGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MemoryResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMemoryApiV1MemoryGet(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MemoryApi.getMemoryApiV1MemoryGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * MemoryApi - factory interface
+ */
+export const MemoryApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = MemoryApiFp(configuration)
+    return {
+        /**
+         * Return all stored memory facts for the authenticated user.
+         * @summary Get Memory
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMemoryApiV1MemoryGet(options?: RawAxiosRequestConfig): AxiosPromise<MemoryResponse> {
+            return localVarFp.getMemoryApiV1MemoryGet(options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * MemoryApi - object-oriented interface
+ */
+export class MemoryApi extends BaseAPI {
+    /**
+     * Return all stored memory facts for the authenticated user.
+     * @summary Get Memory
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMemoryApiV1MemoryGet(options?: RawAxiosRequestConfig) {
+        return MemoryApiFp(this.configuration).getMemoryApiV1MemoryGet(options).then((request) => request(this.axios, this.basePath));
     }
 }
 

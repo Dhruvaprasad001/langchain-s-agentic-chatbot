@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import chat, memory, sessions
+from app.api import chat, custom_rules, memory, sessions
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(sessions.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(memory.router, prefix="/api/v1")
+app.include_router(custom_rules.router, prefix="/api/v1")
 
 
 @app.exception_handler(Exception)

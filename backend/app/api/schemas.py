@@ -76,3 +76,13 @@ class MemoryFactResponse(BaseModel):
 
 class MemoryResponse(BaseModel):
     facts: list[MemoryFactResponse]
+
+
+# ── Custom rules schemas ───────────────────────────────────────────────────────
+
+class CustomRulesResponse(BaseModel):
+    rules: str | None
+
+
+class CustomRulesUpdateRequest(BaseModel):
+    rules: str

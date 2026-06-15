@@ -338,6 +338,105 @@
         }
       }
     },
+    "/api/v1/memory": {
+      "get": {
+        "tags": [
+          "memory"
+        ],
+        "summary": "Get Memory",
+        "description": "Return all stored memory facts for the authenticated user.",
+        "operationId": "get_memory_api_v1_memory_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/custom-rules": {
+      "get": {
+        "tags": [
+          "custom-rules"
+        ],
+        "summary": "Get Custom Rules",
+        "description": "Return the authenticated user's custom rules string (null if not set).",
+        "operationId": "get_custom_rules_api_v1_custom_rules_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomRulesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "custom-rules"
+        ],
+        "summary": "Update Custom Rules",
+        "description": "Upsert the authenticated user's custom rules string.",
+        "operationId": "update_custom_rules_api_v1_custom_rules_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomRulesUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomRulesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -372,6 +471,39 @@
         ],
         "title": "ChatRequest"
       },
+      "CustomRulesResponse": {
+        "properties": {
+          "rules": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "title": "CustomRulesResponse"
+      },
+      "CustomRulesUpdateRequest": {
+        "properties": {
+          "rules": {
+            "type": "string",
+            "title": "Rules"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "title": "CustomRulesUpdateRequest"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -384,6 +516,52 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "MemoryFactResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "content",
+          "timestamp"
+        ],
+        "title": "MemoryFactResponse"
+      },
+      "MemoryResponse": {
+        "properties": {
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryFactResponse"
+            },
+            "type": "array",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "facts"
+        ],
+        "title": "MemoryResponse"
       },
       "MessageResponse": {
         "properties": {

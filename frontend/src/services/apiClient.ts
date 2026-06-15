@@ -10,7 +10,7 @@
  */
 
 import { Configuration } from "../../clients/configuration";
-import { SessionsApi } from "../../clients/api";
+import { SessionsApi, MemoryApi, CustomRulesApi } from "../../clients/api";
 import { getIdToken } from "@/src/services/authService";
 
 const BACKEND_URL =
@@ -28,10 +28,26 @@ function makeConfiguration(): Configuration {
 
 // One instance per browser session; re-created on hot reload in dev
 let _sessionsApi: SessionsApi | null = null;
+let _memoryApi: MemoryApi | null = null;
+let _customRulesApi: CustomRulesApi | null = null;
 
 export function getSessionsApi(): SessionsApi {
   if (!_sessionsApi) {
     _sessionsApi = new SessionsApi(makeConfiguration(), BACKEND_URL);
   }
   return _sessionsApi;
+}
+
+export function getMemoryApi(): MemoryApi {
+  if (!_memoryApi) {
+    _memoryApi = new MemoryApi(makeConfiguration(), BACKEND_URL);
+  }
+  return _memoryApi;
+}
+
+export function getCustomRulesApi(): CustomRulesApi {
+  if (!_customRulesApi) {
+    _customRulesApi = new CustomRulesApi(makeConfiguration(), BACKEND_URL);
+  }
+  return _customRulesApi;
 }

@@ -27,6 +27,8 @@ from app.repositories.session_repository import SessionRepository
 if TYPE_CHECKING:
     from app.services.memory_service import MemoryService
 
+from app.repositories.custom_rules_repository import CustomRulesRepository
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +54,7 @@ class AgentState(TypedDict):
     step_results: list[str]   # output of each executed step
     original_message: str     # preserved for executor + synthesizer context
     memory_context: str       # injected before graph run; empty for new users
+    custom_rules_context: str # user-defined instructions prepended to every system prompt
 
 
 # ── ChatService ───────────────────────────────────────────────────────────────
@@ -161,6 +164,8 @@ class ChatService:
     def _llm_node(cls, state: AgentState) -> AgentState:
         """Generate a streaming response to the full conversation."""
         system = f"{cls._system_prompt}\n\nCurrent date: {datetime.now().strftime('%B %d, %Y')}"
+        if state.get("custom_rules_context"):
+            system = state["custom_rules_context"] + "\n\n" + system
         if state.get("memory_context"):
             system += state["memory_context"]
         prompt = ChatPromptTemplate.from_messages([
@@ -226,6 +231,8 @@ class ChatService:
                 step_summary=step_summary,
             )
         )
+        if state.get("custom_rules_context"):
+            system = state["custom_rules_context"] + "\n\n" + system
         if state.get("memory_context"):
             system += state["memory_context"]
         prompt = ChatPromptTemplate.from_messages([
@@ -264,6 +271,8 @@ class ChatService:
                 date=datetime.now().strftime("%B %d, %Y"),
             )
         )
+        if state.get("custom_rules_context"):
+            system = state["custom_rules_context"] + "\n\n" + system
         if state.get("memory_context"):
             system += state["memory_context"]
 
@@ -284,6 +293,8 @@ class ChatService:
             f"{cls._system_prompt}\n\n"
             + STARTUP_CRITIQUE.format(date=datetime.now().strftime("%B %d, %Y"))
         )
+        if state.get("custom_rules_context"):
+            system = state["custom_rules_context"] + "\n\n" + system
         if state.get("memory_context"):
             system += state["memory_context"]
 
@@ -379,6 +390,7 @@ class ChatService:
 
         # retrieve relevant memories and build context string
         memory_context = ""
+        memories: list[str] = []
         if memory_service is not None:
             memories = await memory_service.retrieve_relevant(uid, user_message)
             if memories:
@@ -386,6 +398,18 @@ class ChatService:
                     f"- {m}" for m in memories
                 )
         logger.debug("[MEMORY] injected %d fact(s) session_id=%s", len(memories), session_id)
+
+        # load user's custom rules and build context string
+        custom_rules_context = ""
+        try:
+            raw_rules = CustomRulesRepository().get(uid)
+            if raw_rules and raw_rules.strip():
+                custom_rules_context = (
+                    "IMPORTANT — User's custom instructions (follow these above all else):\n"
+                    + raw_rules.strip()
+                )
+        except Exception as exc:
+            logger.warning("[CUSTOM_RULES] failed to load uid=%s: %s", uid, exc)
 
         # build LangGraph initial state
         messages = self._to_lc_messages(history)
@@ -399,6 +423,7 @@ class ChatService:
             "step_results": [],
             "original_message": "",
             "memory_context": memory_context,
+            "custom_rules_context": custom_rules_context,
         }
 
         logger.info("Chat started session_id=%s uid=%s", session_id, uid)
